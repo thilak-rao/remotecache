@@ -1,4 +1,4 @@
-FROM oven/bun:1.3.6-alpine@sha256:819f91180e721ba09e0e5d3eb7fb985832fd23f516e18ddad7e55aaba8100be7
+FROM oven/bun:1.3.14-alpine@sha256:5acc90a93e91ff07bf72aa90a7c9f0fa189765aec90b47bdbf2152d2196383c0
 
 WORKDIR /app
 
@@ -10,7 +10,13 @@ ENV PORT=3000 \
 COPY tsconfig.json ./
 COPY src ./src
 
-RUN mkdir -p "$CACHE_DIR" "$(dirname "$TOKENS_DB_PATH")"
+# Create the writable data/cache directories and hand ownership to the
+# unprivileged `bun` user (uid 1000) that ships with the base image, so the
+# server never runs as root.
+RUN mkdir -p "$CACHE_DIR" "$(dirname "$TOKENS_DB_PATH")" \
+    && chown -R bun:bun /app
+
+USER bun
 
 EXPOSE 3000
 CMD ["bun", "/app/src/main.ts"]
