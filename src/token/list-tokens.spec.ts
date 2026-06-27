@@ -1,6 +1,6 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { listTokens } from './list-tokens';
-import { TokenRecord } from './token-interfaces';
+import { TokenSummary } from './token-interfaces';
 import { TokenStorage } from './token-storage';
 
 const createMockedStorage = (tokens: ReturnType<TokenStorage['listTokens']>) => ({
@@ -18,10 +18,10 @@ describe('listTokens', () => {
     expect(storage.listTokens).not.toHaveBeenCalled();
   });
 
-  it('returns masked tokens JSON with status 200 when caller has admin rights', async () => {
-    const tokens: TokenRecord[] = [
-      { id: 'a', value: '*a', permission: 'full' },
-      { id: 'b', value: '*b', permission: 'readonly' },
+  it('returns id + permission token summaries as JSON with status 200 for an admin', async () => {
+    const tokens: TokenSummary[] = [
+      { id: 'a', permission: 'full' },
+      { id: 'b', permission: 'readonly' },
     ];
     const response = listTokens(true, createMockedStorage(tokens));
 

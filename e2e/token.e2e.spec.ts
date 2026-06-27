@@ -55,14 +55,12 @@ describe('token management e2e', () => {
 
     const tokenValue = added.value as string;
 
-    // List should contain the masked token
+    // List returns id + permission only; the token value is never exposed
     const listAfterAdd = await requestWithAuth('/v1/admin/tokens');
     expect(listAfterAdd.status).toBe(200);
     const afterAdd = await listAfterAdd.json();
     expect(afterAdd.tokens).toHaveLength(1);
-    expect(afterAdd.tokens[0].id).toBe(tokenId);
-    expect(afterAdd.tokens[0].permission).toBe('readonly');
-    expect(afterAdd.tokens[0].value.length).toBe(tokenValue.length);
+    expect(afterAdd.tokens[0]).toEqual({ id: tokenId, permission: 'readonly' });
 
     // Delete token using the real token value
     const delRes = await requestWithAuth(`/v1/admin/tokens/${encodeURIComponent(tokenValue)}`, {

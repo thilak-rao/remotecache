@@ -31,6 +31,7 @@ This project runs on Bun and uses Bun's built-ins. Do not add Node-only equivale
 - Build every HTTP response from a factory in `src/responses.ts` (`okResponse`, `badRequest`, `conflictError`, …); don't construct `new Response` inside handlers.
 - Cache storage is pluggable: implement `CacheStorageStrategy` (`src/cache/storage-strategy/`) and register it in `createCacheStorage`. Filesystem (default) and S3 already exist.
 - Cache writes are append-only: an existing hash returns `409`, never an overwrite.
+- Token values are hashed (SHA-256) at rest (`hashToken`); the store looks up by hash and only ever returns `id` + `permission`. `TokenStorage` migrates pre-hash plaintext databases on open, gated by `PRAGMA user_version`.
 
 ## Workflow
 

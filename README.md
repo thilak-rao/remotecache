@@ -41,9 +41,12 @@ curl -sS -X POST \
   -d '{"id":"CI","permission":"full"}'
 ```
 
-The response body contains the generated token value.
+The response body contains the generated token value. This is the only time the
+value is shown: tokens are stored hashed (SHA-256), so a lost token cannot be
+recovered from the server and has to be replaced.
 
-List tokens (values are **masked**):
+List tokens (returns `id` and `permission` only — values are never stored in
+recoverable form):
 
 ```sh
 curl -sS \
@@ -158,9 +161,10 @@ All admin endpoints require:
 
 Endpoints:
 
-- `GET /v1/admin/tokens` – list tokens (masked)
+- `GET /v1/admin/tokens` – list tokens; returns `{ "tokens": [{ "id", "permission" }] }` (no values, since they are stored hashed)
 - `POST /v1/admin/tokens` – create a token
   - body: `{ "id": string, "permission": "readonly" | "full" }`
+  - the response is the only place the generated value appears
 - `DELETE /v1/admin/tokens/:token` – delete by token value
 
 ## Development
