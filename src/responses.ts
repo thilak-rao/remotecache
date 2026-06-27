@@ -26,6 +26,13 @@ export function internalServerError(message: string) {
   });
 }
 
+export function payloadTooLargeError(message: string) {
+  return new Response(message, {
+    status: 413,
+    headers: { 'Content-Type': 'text/plain' },
+  });
+}
+
 export function noContentResponse() {
   return new Response(null, { status: 204 });
 }

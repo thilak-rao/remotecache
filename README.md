@@ -142,12 +142,13 @@ export S3_ENDPOINT="http://localhost:9000"
 
 - `PUT /v1/cache/:hash`
   - Auth: `Authorization: Bearer <token>` (**full** only)
-  - Requires a valid `Content-Length` header
+  - Requires a valid `Content-Length` header (a non-negative integer)
   - Responses:
     - `200` on success
     - `409` if the entry already exists (no overwrites)
     - `400` if `Content-Length` is missing/invalid or the hash is invalid
     - `403` when the token can’t write
+    - `413` when the upload exceeds `MAX_UPLOAD_BYTES`
 
 ### Admin endpoints
 

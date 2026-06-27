@@ -10,15 +10,22 @@ import { listTokens } from './token/list-tokens';
 import { logger } from './logger';
 import { internalServerError, notFoundError } from './responses';
 import { isValidHash } from './cache/is-valid-hash';
+import { safeEqual } from './safe-equal';
 
 const ADMIN_TOKEN = Bun.env.ADMIN_TOKEN;
 const PORT = Number(Bun.env.PORT ?? '3000');
 const TOKENS_DB_PATH = Bun.env.TOKENS_DB_PATH;
+const MAX_UPLOAD_BYTES = Number(Bun.env.MAX_UPLOAD_BYTES ?? '524288000');
 const storage = createCacheStorage(Bun.env);
 const tokenStorage = new TokenStorage(TOKENS_DB_PATH);
 
 if (isNaN(PORT) || PORT <= 0 || PORT >= 65536) {
   logger.error('Error: PORT environment variable must be a valid port number.');
+  process.exit(1);
+}
+
+if (!Number.isFinite(MAX_UPLOAD_BYTES) || MAX_UPLOAD_BYTES <= 0) {
+  logger.error('Error: MAX_UPLOAD_BYTES environment variable must be a positive number.');
   process.exit(1);
 }
 
@@ -35,7 +42,7 @@ const getCacheFile = (hash: string): CacheFile => ({
   writeStream: (stream: ReadableStream<Uint8Array>) => storage.writeStream(hash, stream),
 });
 
-const isAdmin = (token: string) => token === Bun.env.ADMIN_TOKEN;
+const isAdmin = (token: string) => safeEqual(token, ADMIN_TOKEN ?? '');
 
 function getAuthToken(headers: Request['headers']): string {
   const header = headers.get('Authorization');
@@ -69,7 +76,13 @@ const server = Bun.serve({
         const tokenPermission = getTokenPermission(headers);
         const cacheFile = getCacheFile(params.hash);
 
-        return writeCache(cacheFile, tokenPermission, body, headers.get('Content-Length') ?? '');
+        return writeCache(
+          cacheFile,
+          tokenPermission,
+          body,
+          headers.get('Content-Length') ?? '',
+          MAX_UPLOAD_BYTES,
+        );
       },
     },
     '/v1/admin/tokens/:token': {

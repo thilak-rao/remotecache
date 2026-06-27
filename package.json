@@ -7,8 +7,8 @@
     "serve": "bun src/main.ts"
   },
   "devDependencies": {
-    "@types/bun": "1.3.11",
-    "oxfmt": "0.48.0",
-    "oxlint": "1.57.0"
+    "@types/bun": "1.3.14",
+    "oxfmt": "0.56.0",
+    "oxlint": "1.71.0"
   }
 }

@@ -4,12 +4,17 @@ import {
   conflictError,
   internalServerError,
   okResponse,
+  payloadTooLargeError,
 } from '../responses';
 import { CacheFile } from './cache-file.interface';
 import { TokenPermission } from '../token/token-interfaces';
 import { logger } from '../logger';
 
 const validateContentLengthHeader = (headerContentLength: string) => {
+  // Content-Length must be a non-negative decimal integer per the HTTP spec;
+  // this also rejects scientific notation like '1e308' that Number() would
+  // otherwise accept as a finite value.
+  if (!/^\d+$/.test(headerContentLength)) return null;
   const contentLength = Number(headerContentLength);
   if (!Number.isFinite(contentLength) || contentLength <= 0) return null;
   return contentLength;
@@ -31,6 +36,7 @@ export async function writeCache(
   tokenPermission: TokenPermission | null,
   body: ReadableStream<Uint8Array> | Blob | null,
   headerContentLength: string,
+  maxUploadBytes: number,
 ) {
   const canWrite = tokenPermission === 'full';
 
@@ -55,6 +61,12 @@ export async function writeCache(
   const sourceStream = toReadableStream(body);
   if (!expectedLength || !sourceStream) {
     return badRequest('Invalid Content-Length header');
+  }
+
+  if (expectedLength > maxUploadBytes) {
+    return payloadTooLargeError(
+      `Upload exceeds the maximum allowed size of ${maxUploadBytes} bytes`,
+    );
   }
 
   let total = 0;

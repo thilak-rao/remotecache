@@ -5,6 +5,8 @@ import { CacheFile } from './cache-file.interface';
 const logger = { error: mock() };
 mock.module('../logger', () => ({ logger }));
 
+const maxUploadBytes = 1024;
+
 describe('writeCache', () => {
   const makeCacheFile = () => ({
     valid: mock<CacheFile['valid']>().mockReturnValue(true),
@@ -34,7 +36,7 @@ describe('writeCache', () => {
   it('returns 403 when token lacks write permission', async () => {
     const cacheFile = makeCacheFile();
     const body = createStream('data');
-    const response = await writeCache(cacheFile, 'readonly', body, '4');
+    const response = await writeCache(cacheFile, 'readonly', body, '4', maxUploadBytes);
 
     expect(response.status).toBe(403);
     expect(await response.text()).toBe('Access forbidden');
@@ -48,7 +50,7 @@ describe('writeCache', () => {
     cacheFile.valid.mockReturnValue(false);
     const body = createStream('data');
 
-    const response = await writeCache(cacheFile, 'full', body, '4');
+    const response = await writeCache(cacheFile, 'full', body, '4', maxUploadBytes);
 
     expect(response.status).toBe(400);
     expect(await response.text()).toBe('Invalid hash');
@@ -72,7 +74,7 @@ describe('writeCache', () => {
       await consumeStream(stream);
     });
 
-    const response = await writeCache(cacheFile, 'full', body, '4');
+    const response = await writeCache(cacheFile, 'full', body, '4', maxUploadBytes);
 
     expect(response.status).toBe(500);
     expect(await response.text()).toBe('Failed to write to cache');
@@ -87,7 +89,7 @@ describe('writeCache', () => {
     cacheFile.exists.mockRejectedValue(existsError);
 
     const body = createStream('data');
-    const response = await writeCache(cacheFile, 'full', body, '4');
+    const response = await writeCache(cacheFile, 'full', body, '4', maxUploadBytes);
 
     expect(response.status).toBe(500);
     expect(await response.text()).toBe('Failed to check cache');
@@ -100,7 +102,7 @@ describe('writeCache', () => {
     cacheFile.exists.mockResolvedValue(true);
 
     const body = createStream('data');
-    const response = await writeCache(cacheFile, 'full', body, '4');
+    const response = await writeCache(cacheFile, 'full', body, '4', maxUploadBytes);
 
     expect(response.status).toBe(409);
     expect(await response.text()).toBe('Cannot override an existing record');
@@ -113,10 +115,42 @@ describe('writeCache', () => {
     cacheFile.exists.mockResolvedValue(false);
 
     const body = createStream('data');
-    const response = await writeCache(cacheFile, 'full', body, 'not-a-number');
+    const response = await writeCache(cacheFile, 'full', body, 'not-a-number', maxUploadBytes);
 
     expect(response.status).toBe(400);
     expect(await response.text()).toBe('Invalid Content-Length header');
+    expect(cacheFile.writeStream).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when Content-Length is not a plain integer (e.g. scientific notation)', async () => {
+    const cacheFile = makeCacheFile();
+    cacheFile.exists.mockResolvedValue(false);
+
+    const body = createStream('data');
+    const response = await writeCache(cacheFile, 'full', body, '1e308', maxUploadBytes);
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe('Invalid Content-Length header');
+    expect(cacheFile.writeStream).not.toHaveBeenCalled();
+  });
+
+  it('returns 413 and never reads the body when Content-Length exceeds the max', async () => {
+    const cacheFile = makeCacheFile();
+    cacheFile.exists.mockResolvedValue(false);
+
+    const body = createStream('data');
+    const response = await writeCache(
+      cacheFile,
+      'full',
+      body,
+      String(maxUploadBytes + 1),
+      maxUploadBytes,
+    );
+
+    expect(response.status).toBe(413);
+    expect(await response.text()).toBe(
+      `Upload exceeds the maximum allowed size of ${maxUploadBytes} bytes`,
+    );
     expect(cacheFile.writeStream).not.toHaveBeenCalled();
   });
 
@@ -129,7 +163,7 @@ describe('writeCache', () => {
       await consumeStream(stream);
     });
 
-    const response = await writeCache(cacheFile, 'full', body, '3');
+    const response = await writeCache(cacheFile, 'full', body, '3', maxUploadBytes);
 
     expect(response.status).toBe(400);
     expect(await response.text()).toBe('Invalid Content-Length header');
@@ -145,7 +179,7 @@ describe('writeCache', () => {
     });
 
     const body = createStream('some-data');
-    const response = await writeCache(cacheFile, 'full', body, '9');
+    const response = await writeCache(cacheFile, 'full', body, '9', maxUploadBytes);
 
     expect(cacheFile.exists).toHaveBeenCalled();
     expect(cacheFile.writeStream).toHaveBeenCalled();
@@ -160,7 +194,7 @@ describe('writeCache', () => {
     cacheFile.writeStream.mockRejectedValue(diskFullError);
 
     const body = createStream('payload');
-    const response = await writeCache(cacheFile, 'full', body, '7');
+    const response = await writeCache(cacheFile, 'full', body, '7', maxUploadBytes);
 
     expect(cacheFile.exists).toHaveBeenCalled();
     expect(cacheFile.writeStream).toHaveBeenCalled();
