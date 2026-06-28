@@ -1,13 +1,24 @@
 ---
-title: nx-cache-server-bun
-description: A small, self-hosted Nx Remote Cache server on the Bun runtime.
+title: remotecache
+description: Own your Nx remote cache. A free, self-hosted, MIT-licensed Nx remote cache server on Bun — filesystem or S3 storage, token auth, one small container.
 template: splash
+head:
+  - tag: title
+    content: "Self-Hosted Nx Remote Cache — Free & MIT-Licensed | remotecache"
+  - tag: script
+    attrs: { type: application/ld+json }
+    content: |
+      {"@context":"https://schema.org","@type":"SoftwareApplication","name":"remotecache (nx-cache-server-bun)","applicationCategory":"DeveloperApplication","operatingSystem":"Docker, Linux, macOS","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"license":"https://opensource.org/licenses/MIT","codeRepository":"https://github.com/thilak-rao/nx-cache-server-bun","url":"https://remotecache.dev/","description":"A free, self-hosted, MIT-licensed Nx remote cache server on the Bun runtime."}
 hero:
-  tagline: Self-hosted Nx Remote Cache on Bun — filesystem or S3 storage, token auth, one small container.
+  tagline: "Own your Nx remote cache. Free, MIT-licensed, self-hosted — the third option when the official @nx/* plugins are deprecated and Nx Cloud is the paid escape hatch."
   actions:
     - text: Quickstart
       link: /getting-started/quickstart/
       icon: right-arrow
+    - text: Why this exists
+      link: /why/
+      icon: open-book
+      variant: minimal
     - text: View on GitHub
       link: https://github.com/thilak-rao/nx-cache-server-bun
       icon: external
@@ -17,16 +28,18 @@ hero:
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
 <CardGrid>
-  <Card title="Nx cache API" icon="rocket">
-    Implements `GET`/`PUT /v1/cache/:hash` for the Nx self-hosted remote cache.
+  <Card title="Free & MIT" icon="approve-check">
+    No per-seat fees, no Commercial license. Run it yourself. The official `@nx/*-cache` plugins shipped under a Commercial license; this one is MIT.
   </Card>
-  <Card title="Token auth" icon="approve-check">
-    `readonly` and `full` tokens, hashed at rest; an admin token manages them.
+  <Card title="Trust-boundary tokens" icon="shield">
+    `readonly` for untrusted CI, `full` for trusted pipelines. Untrusted PRs can't write, so they can't poison the cache. [See CVE-2025-36852](/security/cve-2025-36852/).
   </Card>
-  <Card title="Pluggable storage" icon="open-book">
-    Local filesystem by default, or any S3-compatible bucket.
+  <Card title="Filesystem or S3" icon="open-book">
+    Local disk by default, or any S3-compatible bucket (AWS S3, MinIO).
   </Card>
-  <Card title="Runs on Bun" icon="seti:typescript">
-    `Bun.serve` + `bun:sqlite`, shipped as a small non-root container.
+  <Card title="One small Bun container" icon="seti:typescript">
+    `Bun.serve` + `bun:sqlite`, shipped as a non-root image on GHCR.
   </Card>
 </CardGrid>
+
+In May 2026, Nx deprecated its four official self-hosted cache plugins, citing the CVE-2025-36852 (CREEP) cache-poisoning flaw and pointing teams toward Nx Cloud — a paid product. This server is the self-hosted endpoint alternative: a `readonly`/`full` token split that lets you architect around the cache-poisoning class without paying for managed infrastructure. [Read the full story](/why/).
