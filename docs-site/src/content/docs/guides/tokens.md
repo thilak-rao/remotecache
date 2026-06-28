@@ -13,7 +13,7 @@ The cache has three permission levels:
 
 Token values are hashed with SHA-256 before being stored. The value appears exactly once, in the response to `POST /v1/admin/tokens`. If you lose a token, it can't be recovered from the server; create a new one and delete the old one.
 
-See the [API Reference](/nx-cache-server-bun/api/) for full request and response schemas.
+See the [API Reference](/api/) for full request and response schemas.
 
 ## Admin endpoints
 

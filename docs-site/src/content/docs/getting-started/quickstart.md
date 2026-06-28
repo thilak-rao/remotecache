@@ -14,7 +14,7 @@ bun install
 ADMIN_TOKEN="change-me" bun run serve
 ```
 
-Starts on `http://localhost:3000` by default. The [Configuration](/nx-cache-server-bun/guides/configuration/) page covers all the environment variables — port, storage, upload limits, and more.
+Starts on `http://localhost:3000` by default. The [Configuration](/guides/configuration/) page covers all the environment variables — port, storage, upload limits, and more.
 
 ## 2. Create an access token
 
@@ -43,5 +43,5 @@ Run Nx as usual (`nx build`, `nx test`, etc.) and it will use the cache.
 
 ## Next steps
 
-- [API Reference](/nx-cache-server-bun/api/) — full HTTP API details, status codes, and request/response shapes.
-- [Configuration](/nx-cache-server-bun/guides/configuration/) — all environment variables, S3 storage setup, and production tips.
+- [API Reference](/api/) — full HTTP API details, status codes, and request/response shapes.
+- [Configuration](/guides/configuration/) — all environment variables, S3 storage setup, and production tips.

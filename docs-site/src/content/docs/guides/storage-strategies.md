@@ -9,7 +9,7 @@ The server has two storage backends: **filesystem** (the default) and **S3-compa
 
 When `STORAGE_STRATEGY` is not set (or is anything other than `s3`), cache entries are stored on disk under `CACHE_DIR` (default: `./cache`).
 
-In production, mount a persistent volume at `./cache`, or point `CACHE_DIR` at a path that survives restarts. See [Configuration](/nx-cache-server-bun/guides/configuration/) for all environment variables.
+In production, mount a persistent volume at `./cache`, or point `CACHE_DIR` at a path that survives restarts. See [Configuration](/guides/configuration/) for all environment variables.
 
 ## S3-compatible storage
 

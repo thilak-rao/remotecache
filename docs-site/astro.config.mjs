@@ -6,8 +6,7 @@ import starlightLinksValidator from 'starlight-links-validator';
 
 // https://astro.build/config
 export default defineConfig({
-  site: 'https://thilak-rao.github.io',
-  base: '/nx-cache-server-bun',
+  site: 'https://remotecache.dev',
   integrations: [
     starlight({
       title: 'nx-cache-server-bun',
@@ -22,7 +21,7 @@ export default defineConfig({
         starlightLinksValidator({
           // starlight-openapi pages are generated dynamically and don't register
           // headings with the links validator, so exclude them from validation.
-          exclude: ['/nx-cache-server-bun/api/**'],
+          exclude: ['/api/**'],
         }),
         // Generate the API reference from the OpenAPI spec at the repo root.
         starlightOpenAPI([

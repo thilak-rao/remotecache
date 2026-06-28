@@ -32,8 +32,8 @@ docker run -p 3000:3000 \
   ghcr.io/thilak-rao/nx-cache-server-bun:latest
 ```
 
-For S3 storage, omit the `./cache` volume and pass the S3 environment variables instead. The `./data` volume is still needed for the token database. See [Storage strategies](/nx-cache-server-bun/guides/storage-strategies/) for details.
+For S3 storage, omit the `./cache` volume and pass the S3 environment variables instead. The `./data` volume is still needed for the token database. See [Storage strategies](/guides/storage-strategies/) for details.
 
 ## Configuration
 
-See the [Configuration](/nx-cache-server-bun/guides/configuration/) page for all environment variables, including `PORT`, `TOKENS_DB_PATH`, `MAX_UPLOAD_BYTES`, and S3 options.
+See the [Configuration](/guides/configuration/) page for all environment variables, including `PORT`, `TOKENS_DB_PATH`, `MAX_UPLOAD_BYTES`, and S3 options.
