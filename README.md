@@ -20,6 +20,7 @@ Nx's official self-hosted cache went free, then paid ($250/seat/year Powerpack),
 - Nx remote cache endpoints
   - `GET /v1/cache/:hash` (download)
   - `PUT /v1/cache/:hash` (upload)
+- Prometheus metrics at `GET /metrics` (unauthenticated; cache hit-rate, request counts, uploaded bytes)
 - Token-based auth
   - **readonly** tokens can download
   - **full** tokens can download + upload

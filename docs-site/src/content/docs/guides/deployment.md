@@ -36,6 +36,23 @@ docker run -p 3000:3000 \
 
 For S3 storage, omit the `./cache` volume and pass the S3 environment variables instead. The `./data` volume is still needed for the token database. See [Storage strategies](/guides/storage-strategies/) for details.
 
+## Monitoring
+
+The server exposes Prometheus metrics at `GET /metrics` in the text exposition format (version 0.0.4):
+
+- `nx_cache_requests_total{method,result}` — cache requests by method and outcome. The `GET` `hit`/`miss` split is the cache hit-rate; `PUT` `forbidden` counts read-only tokens rejected from writing, and `PUT` `immutable` counts attempts to overwrite an existing entry.
+- `nx_cache_uploaded_bytes_total` — total bytes accepted by successful uploads.
+
+`/metrics` is **unauthenticated** and reports only aggregate counters — no token values or cache hashes. Scrape it over a private network and keep it off any public route (for example, block `/metrics` at your reverse proxy and point the collector at the container directly).
+
+```yaml
+# Prometheus scrape config
+scrape_configs:
+  - job_name: nx-cache
+    static_configs:
+      - targets: ['nx-cache:3000']
+```
+
 ## Configuration
 
 See the [Configuration](/guides/configuration/) page for all environment variables, including `PORT`, `TOKENS_DB_PATH`, `MAX_UPLOAD_BYTES`, and S3 options. Before exposing the server to CI traffic, review the [Security](/guides/security/) guide for token scoping and the append-only trust model.

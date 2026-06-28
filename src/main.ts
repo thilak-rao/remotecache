@@ -11,6 +11,8 @@ import { logger } from './logger';
 import { internalServerError, notFoundError } from './responses';
 import { isValidHash } from './cache/is-valid-hash';
 import { safeEqual } from './safe-equal';
+import { MetricsRegistry } from './metrics/metrics-registry';
+import { getMetrics } from './metrics/get-metrics';
 
 const ADMIN_TOKEN = Bun.env.ADMIN_TOKEN;
 const PORT = Number(Bun.env.PORT ?? '3000');
@@ -18,6 +20,7 @@ const TOKENS_DB_PATH = Bun.env.TOKENS_DB_PATH;
 const MAX_UPLOAD_BYTES = Number(Bun.env.MAX_UPLOAD_BYTES ?? '524288000');
 const storage = createCacheStorage(Bun.env);
 const tokenStorage = new TokenStorage(TOKENS_DB_PATH);
+const metrics = new MetricsRegistry();
 
 if (isNaN(PORT) || PORT <= 0 || PORT >= 65536) {
   logger.error('Error: PORT environment variable must be a valid port number.');
@@ -62,27 +65,36 @@ const getTokenPermission = (headers: Headers): TokenPermission => {
   return tokenValue ? tokenStorage.findToken(tokenValue)?.permission : null;
 };
 
-const server = Bun.serve({
+export const server = Bun.serve({
   port: PORT,
   routes: {
+    '/metrics': {
+      GET: () => getMetrics(metrics),
+    },
     '/v1/cache/:hash': {
-      GET: ({ params, headers }) => {
+      GET: async ({ params, headers }) => {
         const tokenPermission = getTokenPermission(headers);
         const cacheFile = getCacheFile(params.hash);
 
-        return getCache(cacheFile, tokenPermission);
+        const response = await getCache(cacheFile, tokenPermission);
+        metrics.recordCacheRequest('GET', response.status);
+        return response;
       },
-      PUT: ({ headers, params, body }) => {
+      PUT: async ({ headers, params, body }) => {
         const tokenPermission = getTokenPermission(headers);
         const cacheFile = getCacheFile(params.hash);
+        const contentLength = headers.get('Content-Length') ?? '';
 
-        return writeCache(
+        const response = await writeCache(
           cacheFile,
           tokenPermission,
           body,
-          headers.get('Content-Length') ?? '',
+          contentLength,
           MAX_UPLOAD_BYTES,
         );
+        const uploadedBytes = response.status === 200 ? Number(contentLength) || 0 : 0;
+        metrics.recordCacheRequest('PUT', response.status, uploadedBytes);
+        return response;
       },
     },
     '/v1/admin/tokens/:token': {

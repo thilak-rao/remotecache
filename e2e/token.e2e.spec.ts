@@ -26,8 +26,8 @@ describe('token management e2e', () => {
 
     await fs.rm('nx-cache-server-tokens.sqlite', { force: true });
 
-    await import('../src/main');
-    baseUrl = `http://localhost:4010`;
+    const { server } = await import('../src/main');
+    baseUrl = server.url.origin;
   });
 
   it('lists empty, adds token, lists with token, deletes, and lists empty again', async () => {

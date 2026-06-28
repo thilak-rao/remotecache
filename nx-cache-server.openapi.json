@@ -6,6 +6,25 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/metrics": {
+      "get": {
+        "description": "Prometheus metrics in the text exposition format (version 0.0.4). Unauthenticated and meant to be scraped over a private network; restrict it to your metrics collector and never expose it publicly. Reports cache request counters by method and result (the GET hit/miss split is the cache hit-rate, and PUT 'forbidden' counts read-only tokens rejected from writing) plus total bytes accepted by successful uploads.",
+        "operationId": "getMetrics",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Prometheus exposition-format metrics",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/cache/{hash}": {
       "put": {
         "description": "Upload a task output",
