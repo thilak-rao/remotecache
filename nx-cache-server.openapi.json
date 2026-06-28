@@ -22,17 +22,6 @@
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "401": {
-            "description": "Missing or invalid authentication token.",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "string",
-                  "description": "Error message provided to the Nx CLI user"
-                }
-              }
-            }
-          },
           "403": {
             "description": "Access forbidden. (e.g. read-only token used to write)",
             "content": {
@@ -46,6 +35,9 @@
           },
           "409": {
             "description": "Cannot override an existing record"
+          },
+          "413": {
+            "$ref": "#/components/responses/PayloadTooLarge"
           }
         },
         "parameters": [
@@ -100,6 +92,9 @@
                 }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
           },
           "403": {
             "$ref": "#/components/responses/AccessForbidden"
@@ -307,6 +302,16 @@
       },
       "BadRequest": {
         "description": "Bad request",
+        "content": {
+          "text/plain": {
+            "schema": {
+              "$ref": "#/components/schemas/PlainTextError"
+            }
+          }
+        }
+      },
+      "PayloadTooLarge": {
+        "description": "Payload too large",
         "content": {
           "text/plain": {
             "schema": {
