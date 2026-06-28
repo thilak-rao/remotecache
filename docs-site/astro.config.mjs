@@ -39,6 +39,13 @@ export default defineConfig({
       ],
       sidebar: [
         {
+          label: 'Why remotecache',
+          items: [
+            { label: 'Why this exists', slug: 'why' },
+            { label: 'Is your Nx cache safe?', slug: 'security/cve-2025-36852' },
+          ],
+        },
+        {
           label: 'Getting started',
           items: [{ label: 'Quickstart', slug: 'getting-started/quickstart' }],
         },
@@ -49,8 +56,13 @@ export default defineConfig({
             { label: 'Storage strategies', slug: 'guides/storage-strategies' },
             { label: 'Token & admin API', slug: 'guides/tokens' },
             { label: 'Security model', slug: 'guides/security' },
+            { label: 'Migrate from @nx/s3-cache', slug: 'guides/migrate-from-nx-s3-cache' },
             { label: 'Deployment', slug: 'guides/deployment' },
           ],
+        },
+        {
+          label: 'Compare',
+          items: [{ label: 'vs Nx Cloud', slug: 'compare/nx-cloud' }],
         },
         {
           label: 'Contributing',
