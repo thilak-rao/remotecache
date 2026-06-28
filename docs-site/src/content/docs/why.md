@@ -12,7 +12,7 @@ head:
 
 ## The short version
 
-Nx's self-hosted cache went free, then paid ($250/seat/year for Powerpack), then free again (Commercial-licensed plugins), then deprecated outright. This project is the fourth option nobody's advertising: a free, MIT-licensed remote cache server you host, you own, and you control.
+Nx's self-hosted cache went free, then paid ($250/seat/year for Powerpack), then free again (Commercial-licensed plugins), then deprecated outright. This project is the fourth option nobody's advertising: a free, MIT-licensed remote cache server you host and control.
 
 ## What happened to Nx caching
 
@@ -31,7 +31,7 @@ At peak, self-hosted Nx caching required **Powerpack at $250/seat/year**. Even d
 
 ## Standing on `jase88`'s shoulders
 
-This project forks [jase88/nx-cache-server-bun](https://github.com/jase88/nx-cache-server-bun), a minimal, well-structured Bun/Hono cache server that implements Nx's remote cache HTTP contract. `jase88` did the hard part: figuring out the exact endpoints Nx expects, the binary artifact format, and a clean storage abstraction. Without that starting point, this fork would not exist.
+This project forks [jase88/nx-cache-server-bun](https://github.com/jase88/nx-cache-server-bun), a minimal, well-structured Bun/Hono cache server that implements Nx's remote cache HTTP contract. `jase88` did the hard part: figuring out the exact endpoints Nx expects, the binary artifact format, and a clean storage abstraction. This fork wouldn't exist without it.
 
 What this fork adds on top of that foundation:
 

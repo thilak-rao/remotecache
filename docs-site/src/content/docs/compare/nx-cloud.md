@@ -10,7 +10,7 @@ head:
       {"@context":"https://schema.org","@type":"TechArticle","headline":"Self-hosted Nx remote cache vs Nx Cloud","description":"An honest comparison of Nx Cloud and a free self-hosted Nx remote cache across cost, security, control, and data residency.","url":"https://remotecache.dev/compare/nx-cloud/","author":{"@type":"Person","name":"Thilak Rao"},"mainEntityOfPage":"https://remotecache.dev/compare/nx-cloud/"}
 ---
 
-This page is written to be deliberately fair. Nx Cloud is a capable product with real advantages this server cannot replicate. Read both sections and pick the one that fits your actual constraints — not the one that has the better marketing page.
+This page tries to be fair. Nx Cloud is a capable product with real advantages this server cannot replicate. Read both sections and pick the one that fits your actual constraints — not the one that has the better marketing page.
 
 For context on why the official self-hosted plugins were deprecated and why this server exists, see [Why this server](/why/).
 

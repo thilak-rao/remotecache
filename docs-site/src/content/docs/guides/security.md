@@ -21,7 +21,7 @@ Cache hash parameters are validated before any storage access (`src/cache/is-val
 
 Once written, cache entries don't change. A `PUT` targeting an existing hash returns `409` without touching storage.
 
-## Trust boundaries: stopping cache poisoning
+## Trust boundaries: containing cache poisoning
 
 CVE-2025-36852 (CREEP) is an architectural flaw in single-credential cache plugins: a PR workflow
 hashes to the same key as a trusted main build, uploads a poisoned artifact first, and every
