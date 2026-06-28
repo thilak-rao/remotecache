@@ -11,12 +11,12 @@ Images are published to the GitHub Container Registry:
 ghcr.io/thilak-rao/nx-cache-server-bun
 ```
 
-| Tag | Published when |
-|---|---|
-| `:latest` | Push to `main` |
-| `:sha-<short>` | Push to `main` |
-| `:X.Y.Z` | Version tag (e.g. `v1.2.3`) |
-| `:X.Y` | Version tag |
+| Tag            | Published when              |
+| -------------- | --------------------------- |
+| `:latest`      | Push to `main`              |
+| `:sha-<short>` | Push to `main`              |
+| `:X.Y.Z`       | Version tag (e.g. `v1.2.3`) |
+| `:X.Y`         | Version tag                 |
 
 The container runs as a non-root user. The Bun base image is pinned by digest.
 

@@ -21,9 +21,11 @@
 ### Task 1: Publish the v1.0.0 release
 
 **Files:**
+
 - Create (temp, not committed): `<scratchpad>/v1.0.0-notes.md`
 
 **Interfaces:**
+
 - Consumes: existing git tag `v1.0.0`.
 - Produces: a GitHub Release named `v1.0.0`, not flagged Latest.
 
@@ -38,16 +40,19 @@ Write this exact content to `<scratchpad>/v1.0.0-notes.md`:
 
 ```markdown
 **Security**
+
 - Enforce `MAX_UPLOAD_BYTES` on uploads (returns `413` over the limit). It was documented before this release but never actually checked.
 - Compare the admin token in constant time.
 - Reject path-traversal and malformed cache hashes, and require an integer `Content-Length`.
 
 **Build and CI**
+
 - Run the container as a non-root user; pin the Bun base image to `1.3.14-alpine` by digest.
 - Publish to GHCR from CI: a push to `main` gives `:latest` and `:sha-<short>`; version tags give `:X.Y.Z` and `:X.Y`.
 - Dependabot now also watches GitHub Actions and Docker, not just Bun dependencies.
 
 **Maintenance**
+
 - Upgrade dev dependencies to latest. Add `AGENTS.md` as the shared agent guide.
 
 Pull: `docker pull ghcr.io/thilak-rao/nx-cache-server-bun:1.0.0`
@@ -68,9 +73,11 @@ Expected: `{"isLatest":false,"name":"v1.0.0","tagName":"v1.0.0"}`.
 ### Task 2: Publish the v2.0.0 release as Latest
 
 **Files:**
+
 - Create (temp, not committed): `<scratchpad>/v2.0.0-notes.md`
 
 **Interfaces:**
+
 - Consumes: existing git tag `v2.0.0`.
 - Produces: a GitHub Release named `v2.0.0`, flagged Latest.
 

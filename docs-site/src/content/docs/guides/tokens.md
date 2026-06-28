@@ -5,11 +5,11 @@ description: Managing access tokens and the admin API.
 
 The cache has three permission levels:
 
-| Permission | Capabilities |
-|---|---|
-| `readonly` | Download cache entries (`GET /v1/cache/:hash`) |
-| `full` | Download and upload cache entries |
-| admin (`ADMIN_TOKEN`) | Manage tokens, plus everything `full` can do |
+| Permission            | Capabilities                                   |
+| --------------------- | ---------------------------------------------- |
+| `readonly`            | Download cache entries (`GET /v1/cache/:hash`) |
+| `full`                | Download and upload cache entries              |
+| admin (`ADMIN_TOKEN`) | Manage tokens, plus everything `full` can do   |
 
 Token values are hashed with SHA-256 before being stored. The value appears exactly once, in the response to `POST /v1/admin/tokens`. If you lose a token, it can't be recovered from the server; create a new one and delete the old one.
 

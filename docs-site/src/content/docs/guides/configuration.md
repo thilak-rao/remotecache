@@ -7,20 +7,20 @@ The server reads all configuration from environment variables. There are no conf
 
 ## Environment variables
 
-| Variable | Required | Default | Purpose |
-|---|---|---|---|
-| `ADMIN_TOKEN` | yes | — | Admin API auth; full cache access. Server exits on startup without it. |
-| `PORT` | no | `3000` | HTTP port. |
-| `TOKENS_DB_PATH` | no | `./data/nx-cache-server-tokens.sqlite` | SQLite token DB path. Persist this in production. |
-| `MAX_UPLOAD_BYTES` | no | `524288000` (500 MiB) | Upload size cap for `PUT`; over the limit returns `413`. |
-| `STORAGE_STRATEGY` | no | filesystem | Set to `s3` for S3-compatible storage; any other value uses the filesystem. |
-| `CACHE_DIR` | no | `./cache` | Filesystem cache directory (filesystem strategy). |
-| `S3_REGION` | for s3 | — | S3 region. |
-| `S3_BUCKET` | for s3 | — | S3 bucket. |
-| `S3_ACCESS_KEY_ID` | for s3 | — | S3 access key. |
-| `S3_SECRET_ACCESS_KEY` | for s3 | — | S3 secret key. |
-| `S3_ENDPOINT` | no | — | Custom endpoint for MinIO / other S3-compatible providers. |
-| `VERBOSE` | no | — | Set `1` to print `logger.info`/`logger.log` output; errors always print. |
+| Variable               | Required | Default                                | Purpose                                                                     |
+| ---------------------- | -------- | -------------------------------------- | --------------------------------------------------------------------------- |
+| `ADMIN_TOKEN`          | yes      | —                                      | Admin API auth; full cache access. Server exits on startup without it.      |
+| `PORT`                 | no       | `3000`                                 | HTTP port.                                                                  |
+| `TOKENS_DB_PATH`       | no       | `./data/nx-cache-server-tokens.sqlite` | SQLite token DB path. Persist this in production.                           |
+| `MAX_UPLOAD_BYTES`     | no       | `524288000` (500 MiB)                  | Upload size cap for `PUT`; over the limit returns `413`.                    |
+| `STORAGE_STRATEGY`     | no       | filesystem                             | Set to `s3` for S3-compatible storage; any other value uses the filesystem. |
+| `CACHE_DIR`            | no       | `./cache`                              | Filesystem cache directory (filesystem strategy).                           |
+| `S3_REGION`            | for s3   | —                                      | S3 region.                                                                  |
+| `S3_BUCKET`            | for s3   | —                                      | S3 bucket.                                                                  |
+| `S3_ACCESS_KEY_ID`     | for s3   | —                                      | S3 access key.                                                              |
+| `S3_SECRET_ACCESS_KEY` | for s3   | —                                      | S3 secret key.                                                              |
+| `S3_ENDPOINT`          | no       | —                                      | Custom endpoint for MinIO / other S3-compatible providers.                  |
+| `VERBOSE`              | no       | —                                      | Set `1` to print `logger.info`/`logger.log` output; errors always print.    |
 
 ## Notes
 

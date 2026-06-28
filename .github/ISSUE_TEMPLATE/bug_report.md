@@ -12,6 +12,7 @@ labels: bug
 **Steps to reproduce**
 
 **Environment**
+
 - Version / image tag:
 - Storage strategy (filesystem / s3):
 - Bun version (if running from source):

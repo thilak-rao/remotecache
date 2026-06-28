@@ -33,18 +33,18 @@ Once written, cache entries don't change. A `PUT` targeting an existing hash ret
 
 ### `GET /v1/cache/:hash`
 
-| Status | Meaning |
-|---|---|
-| `200` | Entry found; body is `application/octet-stream` |
-| `403` | Token lacks read permission |
-| `404` | Entry not found |
+| Status | Meaning                                         |
+| ------ | ----------------------------------------------- |
+| `200`  | Entry found; body is `application/octet-stream` |
+| `403`  | Token lacks read permission                     |
+| `404`  | Entry not found                                 |
 
 ### `PUT /v1/cache/:hash`
 
-| Status | Meaning |
-|---|---|
-| `200` | Entry written |
-| `400` | `Content-Length` missing or invalid, or hash is invalid |
-| `403` | Token lacks write permission |
-| `409` | Entry already exists |
-| `413` | Upload exceeds `MAX_UPLOAD_BYTES` |
+| Status | Meaning                                                 |
+| ------ | ------------------------------------------------------- |
+| `200`  | Entry written                                           |
+| `400`  | `Content-Length` missing or invalid, or hash is invalid |
+| `403`  | Token lacks write permission                            |
+| `409`  | Entry already exists                                    |
+| `413`  | Upload exceeds `MAX_UPLOAD_BYTES`                       |

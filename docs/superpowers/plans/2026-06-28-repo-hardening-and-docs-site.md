@@ -37,6 +37,7 @@
 ## Task 1: Governance files
 
 **Files:**
+
 - Create: `SECURITY.md`
 - Create: `.github/CODEOWNERS`
 - Create: `CONTRIBUTING.md`
@@ -46,6 +47,7 @@
 - Create: `.github/ISSUE_TEMPLATE/config.yml`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: governance docs referenced by README badges (Task 10) and the ruleset/Issues settings (Task 12).
 
@@ -78,7 +80,7 @@ pick up fixes.
 
 - [ ] **Step 3: Write `CONTRIBUTING.md`**
 
-```markdown
+````markdown
 # Contributing
 
 Thanks for helping improve nx-cache-server-bun.
@@ -90,6 +92,7 @@ This project runs on [Bun](https://bun.sh). Install Bun, then:
 ```sh
 bun install
 ```
+````
 
 ## Develop
 
@@ -110,7 +113,8 @@ Build the docs site from `docs-site/` with `bun install && bun run build`.
 ## Pull requests
 
 CI (format-check, lint, test) and CodeQL must pass. Keep PRs focused.
-```
+
+````
 
 - [ ] **Step 4: Write `.github/pull_request_template.md`**
 
@@ -126,7 +130,7 @@ CI (format-check, lint, test) and CodeQL must pass. Keep PRs focused.
 - [ ] `bun run format --check` passes
 - [ ] Docs updated where behavior/API/config/env changed (README, `docs-site/`, or `nx-cache-server.openapi.json`)
 - [ ] Commits follow Conventional Commits
-```
+````
 
 - [ ] **Step 5: Write `.github/ISSUE_TEMPLATE/bug_report.md`**
 
@@ -145,6 +149,7 @@ labels: bug
 **Steps to reproduce**
 
 **Environment**
+
 - Version / image tag:
 - Storage strategy (filesystem / s3):
 - Bun version (if running from source):
@@ -198,9 +203,11 @@ git commit -m "docs: add security policy, contributing guide, and issue/PR templ
 ## Task 2: CodeQL workflow
 
 **Files:**
+
 - Create: `.github/workflows/codeql.yml`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: a status check whose job name is `analyze` (required by the ruleset in Task 13) and code-scanning results in the Security tab.
 
@@ -258,9 +265,11 @@ git commit -m "ci: add CodeQL code scanning workflow"
 ## Task 3: OpenSSF Scorecard workflow
 
 **Files:**
+
 - Create: `.github/workflows/scorecard.yml`
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: a Scorecard SARIF result in the Security tab and a public score used by the README badge (Task 10).
 
@@ -329,40 +338,49 @@ git commit -m "ci: add OpenSSF Scorecard workflow"
 ## Task 4: Pin existing Actions to commit SHAs
 
 **Files:**
+
 - Modify: `.github/workflows/ci.yml`
 - Modify: `.github/workflows/publish-image.yml`
 
 **Interfaces:**
+
 - Consumes: the SHA table in Global Constraints.
 - Produces: SHA-pinned workflows; behavior unchanged.
 
 - [ ] **Step 1: Edit `ci.yml` — pin both actions**
 
 Replace `uses: actions/checkout@v7` with:
+
 ```yaml
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 ```
+
 Replace `uses: oven-sh/setup-bun@v2` with:
+
 ```yaml
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
 ```
 
 - [ ] **Step 2: Edit `publish-image.yml` — pin all five actions**
 
 ```yaml
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 ```
+
 ```yaml
-        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
+uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 ```
+
 ```yaml
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
+uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
 ```
+
 ```yaml
-        uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6.1.0
+uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6.1.0
 ```
+
 ```yaml
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
+uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
 ```
 
 - [ ] **Step 3: Verify no unpinned `@vN` refs remain**
@@ -382,6 +400,7 @@ git commit -m "ci: pin GitHub Actions to commit SHAs"
 ## Task 5: Scaffold the Starlight site
 
 **Files:**
+
 - Create: `docs-site/package.json`
 - Create: `docs-site/astro.config.mjs`
 - Create: `docs-site/tsconfig.json`
@@ -392,6 +411,7 @@ git commit -m "ci: pin GitHub Actions to commit SHAs"
 - Generated: `docs-site/bun.lock`
 
 **Interfaces:**
+
 - Consumes: `nx-cache-server.openapi.json` (read at build time by `starlight-openapi`).
 - Produces: a buildable Starlight app whose sidebar references slugs `getting-started/quickstart`, `guides/configuration`, `guides/storage-strategies`, `guides/tokens`, `guides/security`, `guides/deployment`, `contributing/architecture`, plus the auto-generated `...openAPISidebarGroups`.
 
@@ -596,10 +616,12 @@ git commit -m "feat(docs): scaffold Starlight site with OpenAPI reference"
 ## Task 6: Getting Started + Configuration pages
 
 **Files:**
+
 - Modify: `docs-site/src/content/docs/getting-started/quickstart.md`
 - Modify: `docs-site/src/content/docs/guides/configuration.md`
 
 **Interfaces:**
+
 - Consumes: env-var facts below (verbatim from `README.md`).
 - Produces: the canonical Configuration page that README links to.
 
@@ -628,20 +650,20 @@ git commit -m "feat(docs): scaffold Starlight site with OpenAPI reference"
 
 - [ ] **Step 2: Write `guides/configuration.md`** — frontmatter `title: Configuration`. Include this exact env-var table verbatim, then add short prose:
 
-  | Variable | Required | Default | Purpose |
-  |---|---|---|---|
-  | `ADMIN_TOKEN` | yes | — | Admin API auth; full cache access. Server exits on startup without it. |
-  | `PORT` | no | `3000` | HTTP port. |
-  | `TOKENS_DB_PATH` | no | `./data/nx-cache-server-tokens.sqlite` | SQLite token DB path. Persist this in production. |
-  | `MAX_UPLOAD_BYTES` | no | `524288000` (500 MiB) | Upload size cap for `PUT`; over the limit returns `413`. |
-  | `STORAGE_STRATEGY` | no | filesystem | Set to `s3` for S3-compatible storage; any other value uses the filesystem. |
-  | `CACHE_DIR` | no | `./cache` | Filesystem cache directory (filesystem strategy). |
-  | `S3_REGION` | for s3 | — | S3 region. |
-  | `S3_BUCKET` | for s3 | — | S3 bucket. |
-  | `S3_ACCESS_KEY_ID` | for s3 | — | S3 access key. |
-  | `S3_SECRET_ACCESS_KEY` | for s3 | — | S3 secret key. |
-  | `S3_ENDPOINT` | no | — | Custom endpoint for MinIO / other S3-compatible providers. |
-  | `VERBOSE` | no | — | Set `1` to print `logger.info`/`logger.log` output; errors always print. |
+  | Variable               | Required | Default                                | Purpose                                                                     |
+  | ---------------------- | -------- | -------------------------------------- | --------------------------------------------------------------------------- |
+  | `ADMIN_TOKEN`          | yes      | —                                      | Admin API auth; full cache access. Server exits on startup without it.      |
+  | `PORT`                 | no       | `3000`                                 | HTTP port.                                                                  |
+  | `TOKENS_DB_PATH`       | no       | `./data/nx-cache-server-tokens.sqlite` | SQLite token DB path. Persist this in production.                           |
+  | `MAX_UPLOAD_BYTES`     | no       | `524288000` (500 MiB)                  | Upload size cap for `PUT`; over the limit returns `413`.                    |
+  | `STORAGE_STRATEGY`     | no       | filesystem                             | Set to `s3` for S3-compatible storage; any other value uses the filesystem. |
+  | `CACHE_DIR`            | no       | `./cache`                              | Filesystem cache directory (filesystem strategy).                           |
+  | `S3_REGION`            | for s3   | —                                      | S3 region.                                                                  |
+  | `S3_BUCKET`            | for s3   | —                                      | S3 bucket.                                                                  |
+  | `S3_ACCESS_KEY_ID`     | for s3   | —                                      | S3 access key.                                                              |
+  | `S3_SECRET_ACCESS_KEY` | for s3   | —                                      | S3 secret key.                                                              |
+  | `S3_ENDPOINT`          | no       | —                                      | Custom endpoint for MinIO / other S3-compatible providers.                  |
+  | `VERBOSE`              | no       | —                                      | Set `1` to print `logger.info`/`logger.log` output; errors always print.    |
 
 - [ ] **Step 3: Build**
 
@@ -662,12 +684,14 @@ git commit -m "docs(site): write quickstart and configuration pages"
 ## Task 7: Storage, Tokens, Security, Deployment guides
 
 **Files:**
+
 - Modify: `docs-site/src/content/docs/guides/storage-strategies.md`
 - Modify: `docs-site/src/content/docs/guides/tokens.md`
 - Modify: `docs-site/src/content/docs/guides/security.md`
 - Modify: `docs-site/src/content/docs/guides/deployment.md`
 
 **Interfaces:**
+
 - Consumes: facts below (verbatim from `README.md`, `AGENTS.md`, and source).
 - Produces: the four deep guides referenced by the sidebar.
 
@@ -736,9 +760,11 @@ git commit -m "docs(site): write storage, tokens, security, and deployment guide
 ## Task 8: Architecture page
 
 **Files:**
+
 - Modify: `docs-site/src/content/docs/contributing/architecture.md`
 
 **Interfaces:**
+
 - Consumes: architecture facts (verbatim from `AGENTS.md`).
 - Produces: the Contributing/Architecture page.
 
@@ -772,9 +798,11 @@ git commit -m "docs(site): write architecture page"
 ## Task 9: Docs build + Pages deploy workflow
 
 **Files:**
+
 - Create: `.github/workflows/docs.yml`
 
 **Interfaces:**
+
 - Consumes: the `docs-site/` build (`bun run build` → `docs-site/dist`).
 - Produces: a `build` status check on PRs (path-filtered, so NOT a ruleset-required check) and a Pages deploy on `main`.
 
@@ -863,10 +891,12 @@ git commit -m "ci: add docs build + Pages deploy workflow"
 ## Task 10: Trim README, add badges, reconcile AGENTS.md
 
 **Files:**
+
 - Modify: `README.md`
 - Modify: `AGENTS.md:3`
 
 **Interfaces:**
+
 - Consumes: the docs site (canonical deep reference).
 - Produces: a lean README landing; `AGENTS.md` line 3 pointing at the site.
 
@@ -890,13 +920,17 @@ git commit -m "ci: add docs build + Pages deploy workflow"
 - [ ] **Step 2: Reconcile `AGENTS.md` line 3**
 
 Change line 3's tail so it points at the site instead of the README for the full reference. Replace:
+
 ```
 See @README.md for the full API surface, environment variables, and deployment.
 ```
+
 with:
+
 ```
 See https://thilak-rao.github.io/nx-cache-server-bun/ for the full API surface, environment variables, and deployment; @README.md is the quickstart landing.
 ```
+
 (`CLAUDE.md` is a symlink to `AGENTS.md`, so this updates both.)
 
 - [ ] **Step 3: Humanizer pass on `README.md`**; apply edits.
@@ -920,6 +954,7 @@ git commit -m "docs: trim README to a landing page and link to the docs site"
 **Files:** none (Git/GitHub operations).
 
 **Interfaces:**
+
 - Consumes: all prior commits on `feat/harden-repo-and-docs-site`.
 - Produces: the workflows + `docs-site/` on `main`, which triggers the first Pages deploy. Required for Task 13 (the ruleset needs the `test` and `analyze` checks to exist on `main`).
 
@@ -930,6 +965,7 @@ Run: `git push -u origin feat/harden-repo-and-docs-site`
 - [ ] **Step 2: Open the PR**
 
 Run:
+
 ```bash
 gh pr create --base main --head feat/harden-repo-and-docs-site \
   --title "Harden repo and add Starlight docs site" \
@@ -954,6 +990,7 @@ Run: `git checkout main && git pull`
 **Files:** none (`gh` API operations). Record any scope-blocked call as a PR/issue checklist item.
 
 **Interfaces:**
+
 - Consumes: a merged `main`.
 - Produces: Dependabot alerts + security updates, private vuln reporting, secret-scanning validity checks, merge settings, Issues enabled, topics, Pages enabled.
 
@@ -963,6 +1000,7 @@ Run: `git checkout main && git pull`
 gh api -X PUT repos/{owner}/{repo}/vulnerability-alerts
 gh api -X PUT repos/{owner}/{repo}/automated-security-fixes
 ```
+
 Expected: HTTP 204 (no output) for each.
 
 - [ ] **Step 2: Private vulnerability reporting**
@@ -970,6 +1008,7 @@ Expected: HTTP 204 (no output) for each.
 ```bash
 gh api -X PUT repos/{owner}/{repo}/private-vulnerability-reporting
 ```
+
 Expected: HTTP 204.
 
 - [ ] **Step 3: Secret-scanning validity + non-provider patterns**
@@ -984,6 +1023,7 @@ gh api -X PATCH repos/{owner}/{repo} --input - <<'JSON'
 }
 JSON
 ```
+
 Expected: JSON response with the two statuses `enabled`.
 
 - [ ] **Step 4: Merge settings + enable Issues**
@@ -994,6 +1034,7 @@ gh api -X PATCH repos/{owner}/{repo} \
   -F allow_merge_commit=false \
   -F delete_branch_on_merge=true
 ```
+
 Expected: JSON showing `has_issues: true`, `allow_merge_commit: false`, `delete_branch_on_merge: true`.
 
 - [ ] **Step 5: Topics**
@@ -1003,6 +1044,7 @@ gh api -X PUT repos/{owner}/{repo}/topics \
   -f 'names[]=nx' -f 'names[]=remote-cache' -f 'names[]=bun' \
   -f 'names[]=self-hosted' -f 'names[]=docker' -f 'names[]=nx-cache'
 ```
+
 Expected: JSON listing the six topics.
 
 - [ ] **Step 6: Enable Pages with the Actions source** (idempotent — skip if Task 11's deploy already enabled it)
@@ -1011,6 +1053,7 @@ Expected: JSON listing the six topics.
 gh api -X POST repos/{owner}/{repo}/pages -f build_type=workflow || \
   gh api -X PUT repos/{owner}/{repo}/pages -f build_type=workflow
 ```
+
 Expected: JSON with `"build_type": "workflow"` and an `html_url`.
 
 - [ ] **Step 7: Set the homepage URL**
@@ -1018,6 +1061,7 @@ Expected: JSON with `"build_type": "workflow"` and an `html_url`.
 ```bash
 gh api -X PATCH repos/{owner}/{repo} -f homepage='https://thilak-rao.github.io/nx-cache-server-bun/'
 ```
+
 Expected: JSON with the homepage set.
 
 - [ ] **Step 8: Verify settings**
@@ -1025,6 +1069,7 @@ Expected: JSON with the homepage set.
 ```bash
 gh api repos/{owner}/{repo} --jq '{has_issues, allow_merge_commit, delete_branch_on_merge, security_and_analysis}'
 ```
+
 Expected: Issues on, merge-commit off, delete-on-merge on, validity checks enabled.
 
 ---
@@ -1034,6 +1079,7 @@ Expected: Issues on, merge-commit off, delete-on-merge on, validity checks enabl
 **Files:** none (`gh` API operation).
 
 **Interfaces:**
+
 - Consumes: `test` (CI) and `analyze` (CodeQL) checks now present on `main` from Task 11.
 - Produces: an active ruleset protecting `main` with admin bypass.
 
@@ -1042,6 +1088,7 @@ Expected: Issues on, merge-commit off, delete-on-merge on, validity checks enabl
 ```bash
 gh api repos/{owner}/{repo}/commits/main/check-runs --jq '.check_runs[].name' | sort -u
 ```
+
 Expected: includes `test` and `analyze`. If a name differs (e.g. CodeQL reports differently), substitute the actual name in Step 2's `context` values.
 
 - [ ] **Step 2: Create the ruleset**
@@ -1074,6 +1121,7 @@ gh api -X POST repos/{owner}/{repo}/rulesets --input - <<'JSON'
 }
 JSON
 ```
+
 Expected: JSON with `"enforcement": "active"` and an `id`.
 
 - [ ] **Step 3: Verify**
@@ -1081,6 +1129,7 @@ Expected: JSON with `"enforcement": "active"` and an `id`.
 ```bash
 gh api repos/{owner}/{repo}/rulesets --jq '.[].name'
 ```
+
 Expected: `main protection` listed.
 
 ---

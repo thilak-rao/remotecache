@@ -37,7 +37,7 @@ These were settled during brainstorming and drive the rest of this spec:
 
 **In scope:** everything under Parts A–D below, plus verification.
 
-**Out of scope:** the v1.0.0 / v2.0.0 GitHub *Release pages* (covered by the
+**Out of scope:** the v1.0.0 / v2.0.0 GitHub _Release pages_ (covered by the
 separate `2026-06-28-github-release-pages-design.md` spec); a custom domain;
 required reviews / signed-commit enforcement; `CHANGELOG.md` automation;
 versioned/multi-version docs; changing the application code or its public API.
@@ -89,11 +89,11 @@ is missing):
   directly and merge own PRs.
 - **Dependabot alerts** — `PUT /repos/{owner}/{repo}/vulnerability-alerts`.
 - **Dependabot security updates** — `PUT
-  /repos/{owner}/{repo}/automated-security-fixes`.
+/repos/{owner}/{repo}/automated-security-fixes`.
 - **Private Vulnerability Reporting** — `PUT
-  /repos/{owner}/{repo}/private-vulnerability-reporting`.
+/repos/{owner}/{repo}/private-vulnerability-reporting`.
 - **Secret-scanning validity checks + non-provider patterns** — `PATCH
-  /repos/{owner}/{repo}` setting
+/repos/{owner}/{repo}` setting
   `security_and_analysis.secret_scanning_validity_checks.status=enabled` and
   `secret_scanning_non_provider_patterns.status=enabled` (push protection +
   base secret scanning are already on).
@@ -104,7 +104,7 @@ is missing):
   off). Required for the issue templates and the SECURITY/CONTRIBUTING community
   flow to be meaningful.
 - **Discoverability** — set repo **topics** (`PUT
-  /repos/{owner}/{repo}/topics`: `nx`, `remote-cache`, `bun`, `self-hosted`,
+/repos/{owner}/{repo}/topics`: `nx`, `remote-cache`, `bun`, `self-hosted`,
   `docker`, `nx-cache`) and the **homepage URL** (`PATCH` `homepage`) to the
   Pages site once live.
 - **Enable Pages** — see Part C.
@@ -177,7 +177,7 @@ is missing):
     `actions/deploy-pages`. Job permissions: `pages: write`, `id-token: write`.
     `concurrency` group for Pages with `cancel-in-progress: true`.
 - **Enable Pages** with GitHub Actions as the source — `POST
-  /repos/{owner}/{repo}/pages` (`build_type: "workflow"`), or rely on the first
+/repos/{owner}/{repo}/pages` (`build_type: "workflow"`), or rely on the first
   `configure-pages` run if the API call is scope-blocked.
 - URL: `https://thilak-rao.github.io/nx-cache-server-bun/`. Astro config sets
   `site: 'https://thilak-rao.github.io'` and `base: '/nx-cache-server-bun/'` so
