@@ -12,7 +12,7 @@ head:
 
 ## The short version
 
-Nx's self-hosted cache went free, then paid ($250/seat/year for Powerpack), then free again (Commercial-licensed plugins), then deprecated outright. This project is the fourth option nobody's advertising: a free, MIT-licensed remote cache server you host and control.
+Nx's self-hosted cache went free, then paid ($250/seat/year for Powerpack), then free again (Commercial-licensed plugins), then deprecated outright. This project is the option nobody's advertising: a free, MIT-licensed remote cache server you host and control.
 
 ## What happened to Nx caching
 
@@ -55,4 +55,4 @@ If you're running `@nx/s3-cache` or another deprecated plugin, you have four pat
 
 ## Get started
 
-The [quickstart](/getting-started/quickstart/) covers Docker and binary installs, the two token types, and how to point your `nx.json` at the server. You own the storage, the logs, and the binary — no account required.
+The [quickstart](/getting-started/quickstart/) walks through starting the server, creating tokens, and wiring Nx to use the cache. You own the storage, the logs, and the binary — no account required.

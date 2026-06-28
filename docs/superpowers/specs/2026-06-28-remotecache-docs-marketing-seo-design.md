@@ -63,7 +63,7 @@ cache — and reserve `full` tokens for trusted main/deploy pipelines.
 
 - **Narrative spine:** *"Own your Nx remote cache."* Security + freedom woven,
   anchored by the origin story. Hook: Nx caching went free → paid ($250/seat) →
-  free → deprecated in ~18 months; the official plugins are now deprecated over a
+  free → deprecated in ~20 months; the official plugins are now deprecated over a
   cache-poisoning CVE; Nx Cloud is the paid escape hatch; this is the free,
   MIT-licensed third option you run yourself.
 - **Scope:** docs site + README + four net-new SEO pages.
