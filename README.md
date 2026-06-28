@@ -1,13 +1,15 @@
 # nx-cache-server-bun
 
-A small, self-hosted **Nx Remote Cache** server built on **Bun**.
+A small, self-hosted Nx remote cache server built on Bun.
 
 [![CI](https://github.com/thilak-rao/nx-cache-server-bun/actions/workflows/ci.yml/badge.svg)](https://github.com/thilak-rao/nx-cache-server-bun/actions/workflows/ci.yml)
-[![Docs](https://github.com/thilak-rao/nx-cache-server-bun/actions/workflows/docs.yml/badge.svg)](https://thilak-rao.github.io/nx-cache-server-bun/)
+[![Docs](https://github.com/thilak-rao/nx-cache-server-bun/actions/workflows/docs.yml/badge.svg)](https://remotecache.dev/)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/thilak-rao/nx-cache-server-bun/badge)](https://scorecard.dev/viewer/?uri=github.com/thilak-rao/nx-cache-server-bun)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
-**Full documentation:** [thilak-rao.github.io/nx-cache-server-bun](https://thilak-rao.github.io/nx-cache-server-bun/)
+**Full documentation:** [remotecache.dev](https://remotecache.dev/)
+
+Nx's official self-hosted cache went free, then paid ($250/seat/year Powerpack), then free again (but Commercial-licensed, not MIT), then deprecated in under two years — all four `@nx/*-cache` plugins were sunset in May 2026 citing CVE-2025-36852 cache poisoning. This server is the MIT-licensed alternative: a custom remote-cache endpoint you own and operate, with no license restrictions and no vendor lock-in. [Full story →](https://remotecache.dev/why/)
 
 ## Features
 
@@ -59,11 +61,26 @@ docker run -p 3000:3000 \
   ghcr.io/thilak-rao/nx-cache-server-bun:latest
 ```
 
-See the [Deployment guide](https://thilak-rao.github.io/nx-cache-server-bun/guides/deployment/) for S3 storage and production setup.
+See the [Deployment guide](https://remotecache.dev/guides/deployment/) for S3 storage and production setup.
 
 ## Links
 
-- [Configuration](https://thilak-rao.github.io/nx-cache-server-bun/guides/configuration/) — all environment variables
-- [API Reference](https://thilak-rao.github.io/nx-cache-server-bun/api/) — full HTTP API
-- [Security model](https://thilak-rao.github.io/nx-cache-server-bun/guides/security/) — token auth, hashing, permissions
-- [Contributing](https://thilak-rao.github.io/nx-cache-server-bun/contributing/) — how to contribute
+- [Configuration](https://remotecache.dev/guides/configuration/) — all environment variables
+- [API Reference](https://remotecache.dev/api/) — full HTTP API
+- [Security model](https://remotecache.dev/guides/security/) — token auth, hashing, permissions
+- [Contributing](https://remotecache.dev/contributing/) — how to contribute
+
+## Credits
+
+This project is built on [`jase88/nx-cache-server-bun`](https://github.com/jase88/nx-cache-server-bun) — the original Bun-based Nx cache server by [jase88](https://github.com/jase88). MIT license preserved.
+
+What this fork adds:
+
+- SHA-256 token hashing at rest + plaintext-DB migration
+- Upload cap / 413 response
+- Constant-time admin token compare
+- Path-traversal and hash hardening
+- Non-root pinned container image
+- GHCR publishing
+- Repo hardening
+- Docs site ([remotecache.dev](https://remotecache.dev/))
