@@ -1,0 +1,32 @@
+---
+title: nx-cache-server-bun
+description: A small, self-hosted Nx Remote Cache server on the Bun runtime.
+template: splash
+hero:
+  tagline: Self-hosted Nx Remote Cache on Bun — filesystem or S3 storage, token auth, one small container.
+  actions:
+    - text: Quickstart
+      link: /nx-cache-server-bun/getting-started/quickstart/
+      icon: right-arrow
+    - text: View on GitHub
+      link: https://github.com/thilak-rao/nx-cache-server-bun
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid>
+  <Card title="Nx cache API" icon="rocket">
+    Implements `GET`/`PUT /v1/cache/:hash` for the Nx self-hosted remote cache.
+  </Card>
+  <Card title="Token auth" icon="approve-check">
+    `readonly` and `full` tokens, hashed at rest; an admin token manages them.
+  </Card>
+  <Card title="Pluggable storage" icon="open-book">
+    Local filesystem by default, or any S3-compatible bucket.
+  </Card>
+  <Card title="Runs on Bun" icon="seti:typescript">
+    `Bun.serve` + `bun:sqlite`, shipped as a small non-root container.
+  </Card>
+</CardGrid>

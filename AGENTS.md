@@ -1,6 +1,6 @@
 # nx-cache-server-bun
 
-Self-hosted Nx Remote Cache server on the Bun runtime. Implements the Nx self-hosted remote cache HTTP API (`GET`/`PUT /v1/cache/:hash`) plus a token admin API (`/v1/admin/tokens`). See @README.md for the full API surface, environment variables, and deployment.
+Self-hosted Nx Remote Cache server on the Bun runtime. Implements the Nx self-hosted remote cache HTTP API (`GET`/`PUT /v1/cache/:hash`) plus a token admin API (`/v1/admin/tokens`). See https://thilak-rao.github.io/nx-cache-server-bun/ for the full API surface, environment variables, and deployment; @README.md is the quickstart landing.
 
 ## Runtime: Bun, not Node
 
@@ -32,6 +32,14 @@ This project runs on Bun and uses Bun's built-ins. Do not add Node-only equivale
 - Cache storage is pluggable: implement `CacheStorageStrategy` (`src/cache/storage-strategy/`) and register it in `createCacheStorage`. Filesystem (default) and S3 already exist.
 - Cache writes are append-only: an existing hash returns `409`, never an overwrite.
 - Token values are hashed (SHA-256) at rest (`hashToken`); the store looks up by hash and only ever returns `id` + `permission`. `TokenStorage` migrates pre-hash plaintext databases on open, gated by `PRAGMA user_version`.
+
+## Docs stay in sync
+
+Docs are part of the change, not a follow-up: any change to behavior, the HTTP API, env vars, or config must update the matching docs surface in the same commit — otherwise the change is incomplete.
+
+- HTTP API (routes, status codes, request/response shapes) → `nx-cache-server.openapi.json`, the single source of truth. The `docs-site/` API Reference is generated from it; never hand-write API docs elsewhere.
+- Env vars and configuration → the Configuration page in `docs-site/` (canonical); `README.md` only links to it.
+- Behavior, storage, security, or architecture → the matching guide in `docs-site/`.
 
 ## Workflow
 
