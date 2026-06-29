@@ -58,14 +58,14 @@ For the full list of environment variables the server itself accepts, see [Confi
 
 If you were using `@nx/s3-cache`, you already have a bucket with the right region and credentials. You can point this server at the same bucket — no new infrastructure needed.
 
-Set `STORAGE_STRATEGY=s3` on the server process along with the four required `S3_*` variables:
+Set `STORAGE_STRATEGY=s3` and `S3_BUCKET` on the server process. Reuse your existing IAM keys if you have them, or omit the keys on EKS, ECS, or EC2 and let the server use the IRSA / instance role:
 
 ```sh
 export STORAGE_STRATEGY=s3
-export S3_REGION=us-east-1          # same region as your existing bucket
+export S3_REGION=us-east-1          # same region as your existing bucket (or AWS_REGION)
 export S3_BUCKET=your-nx-cache      # existing bucket name, or a fresh one
-export S3_ACCESS_KEY_ID=...         # existing or new IAM credentials
-export S3_SECRET_ACCESS_KEY=...
+# export S3_ACCESS_KEY_ID=...       # omit on EKS IRSA / ECS / EC2 instance role
+# export S3_SECRET_ACCESS_KEY=...
 # export S3_ENDPOINT="..."          # only for MinIO or other S3-compatible providers
 ```
 
