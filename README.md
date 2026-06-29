@@ -74,6 +74,8 @@ Health checks can call `GET /health` without a token.
 
 For Kubernetes, install the Helm chart in `charts/remotecache/`. See the [Deployment guide](https://remotecache.dev/guides/deployment/).
 
+Released versions also publish a Helm OCI chart (`oci://ghcr.io/thilak-rao/charts/remotecache`) and standalone binaries for Linux, macOS, and Windows on the [Releases page](https://github.com/thilak-rao/remotecache/releases). See the [Deployment guide](https://remotecache.dev/guides/deployment/) for verification and install steps.
+
 ## Links
 
 - [Configuration](https://remotecache.dev/guides/configuration/) — all environment variables

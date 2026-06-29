@@ -32,19 +32,19 @@ The repository must also allow GitHub Actions to create pull requests.
 3. Review the release PR. Check the changelog and version bump.
 4. Merge the release PR when you want to cut a release.
 5. Confirm the GitHub Release and `vX.Y.Z` tag were created.
-6. Confirm the Docker publishing workflow created the expected image tags. Helm chart publishing is planned for a later phase.
+6. Confirm the publishing workflow created the expected Docker image tags, pushed the Helm chart to GHCR, and attached the binaries and `checksums.txt` to the Release.
 
 ## Tag policy
 
 `latest` is reserved for the latest stable release. `edge` is reserved for the latest successful `main` build. Release tags publish `X.Y.Z` and `X.Y` image tags.
 
-## Docker publishing
+## Publishing
 
-PR CI also runs `helm lint` and `helm template` against the chart in `charts/remotecache/` (filesystem, S3, and TLS value sets). Publishing the chart as an OCI artifact to GHCR is a separate, later step and is not wired yet.
+PR CI runs `helm lint` and `helm template` against the chart in `charts/remotecache/` (filesystem, S3, and TLS value sets). On release tags the workflow also publishes the chart as an OCI artifact to `oci://ghcr.io/thilak-rao/charts/remotecache` and attaches standalone binaries plus a `checksums.txt` to the Release. The chart, image, and binaries each carry a provenance attestation; consumers verify with `gh attestation verify`.
 
 The Docker publishing workflow runs its own preflight gate before pushing images. It repeats the root checks, docs checks, Docker smoke test against `/health`, and Trivy image scan so image publishing cannot race ahead of CI.
 
-Main builds publish `edge` and `sha-<short>`. Release tags publish `latest`, `X.Y.Z`, and `X.Y`. Release images are pushed for `linux/amd64` and `linux/arm64` with SBOM and provenance attestations.
+Main builds publish `edge` and `sha-<short>`. Stable release tags publish `latest`, `X.Y.Z`, and `X.Y`; a prerelease tag (e.g. `v3.0.0-rc.1`) publishes only the exact `X.Y.Z-…` image and never updates `latest`. Release images are pushed for `linux/amd64` and `linux/arm64` with SBOM and provenance. Release tags also publish the Helm chart and the Core 5 binaries (linux/macOS/Windows).
 
 ## If a release does not appear
 
