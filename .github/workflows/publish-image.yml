@@ -8,19 +8,105 @@ on:
 permissions:
   contents: read
   packages: write
+  security-events: write
 
 concurrency:
   group: publish-image-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/remotecache
+  CACHE_IMAGE: ghcr.io/${{ github.repository_owner }}/remotecache:buildcache
+
 jobs:
-  build-and-push:
+  preflight:
     runs-on: ubuntu-latest
-    env:
-      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/remotecache
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Format check
+        run: bun run format --check
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Root audit
+        run: bun audit
+
+      - name: Test
+        run: bun test
+
+      - name: Install docs dependencies
+        run: bun install --frozen-lockfile
+        working-directory: docs-site
+
+      - name: Docs audit
+        run: bun audit
+        working-directory: docs-site
+
+      - name: Docs build
+        run: bun run build
+        working-directory: docs-site
+
+      - name: Build local Docker image
+        run: docker build -t remotecache:publish-check .
+
+      - name: Start Docker container
+        run: docker run -d --name remotecache-publish-check -e ADMIN_TOKEN=test-token -p 3000:3000 remotecache:publish-check
+
+      - name: Wait for server
+        run: |
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:3000/metrics > /tmp/remotecache-metrics.txt; then
+              cat /tmp/remotecache-metrics.txt
+              exit 0
+            fi
+            sleep 1
+          done
+
+          docker logs remotecache-publish-check
+          exit 1
+
+      - name: Stop Docker container
+        if: always()
+        run: docker rm -f remotecache-publish-check || true
+
+      - name: Scan local Docker image
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        with:
+          scan-type: image
+          image-ref: remotecache:publish-check
+          format: sarif
+          output: trivy-image.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          limit-severities-for-sarif: true
+
+      - name: Upload Trivy image SARIF
+        if: ${{ always() && hashFiles('trivy-image.sarif') != '' }}
+        uses: github/codeql-action/upload-sarif@c35d1b164463ee62a100735382aaaa525c5d3496 # codeql-bundle-v2.25.6
+        with:
+          sarif_file: trivy-image.sarif
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: preflight
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4.1.0
 
       - name: Set up Buildx
         uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
@@ -37,18 +123,23 @@ jobs:
         uses: docker/metadata-action@80c7e94dd9b9319bd5eb7a0e0fe9291e23a2a2e9 # v6.1.0
         with:
           images: ${{ env.IMAGE_NAME }}
-          # Push to main -> :latest + :sha-<short>. Version tag vX.Y.Z -> :X.Y.Z + :X.Y.
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=edge,branch=main
             type=sha,prefix=sha-,format=short,enable={{is_default_branch}}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
       - name: Build and push
         uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7.2.0
         with:
           context: .
           file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.CACHE_IMAGE }}
+          cache-to: type=registry,ref=${{ env.CACHE_IMAGE }},mode=max
+          provenance: mode=max
+          sbom: true
