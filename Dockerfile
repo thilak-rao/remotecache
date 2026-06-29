@@ -7,6 +7,10 @@ ENV PORT=3000 \
     TOKENS_DB_PATH=/app/data/nx-cache-server-tokens.sqlite \
     STORAGE_STRATEGY=filesystem
 
+# Install runtime dependencies first so this layer caches independently of source.
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile --production
+
 COPY tsconfig.json ./
 COPY src ./src
 
