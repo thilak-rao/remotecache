@@ -1,0 +1,17 @@
+apiVersion: v2
+name: remotecache
+description: Self-hosted Nx remote cache server on the Bun runtime
+type: application
+# version (chart) and appVersion are wired to release-please in roadmap Phase 6.
+version: 0.1.0
+appVersion: '0.0.0'
+home: https://remotecache.dev
+sources:
+  - https://github.com/thilak-rao/remotecache
+keywords:
+  - nx
+  - remote-cache
+  - cache
+  - bun
+maintainers:
+  - name: Thilak Rao

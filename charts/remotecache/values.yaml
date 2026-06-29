@@ -1,0 +1,111 @@
+# Default values for remotecache.
+
+replicaCount: 1
+
+image:
+  repository: ghcr.io/thilak-rao/remotecache
+  # tag defaults to the chart appVersion when empty.
+  tag: ''
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ''
+fullnameOverride: ''
+
+# Admin token (required). Provide exactly one of:
+#   adminToken: a literal value -> the chart creates a Secret
+#   existingSecret (+ existingSecretKey) -> reference an existing Secret
+adminToken: ''
+existingSecret: ''
+existingSecretKey: admin-token
+
+config:
+  port: 3000
+  # bindAddress: "0.0.0.0" (default) or "::" for IPv6 / dual-stack pods.
+  bindAddress: '0.0.0.0'
+  maxUploadBytes: 524288000
+  verbose: false
+
+storage:
+  # "filesystem" (default) or "s3".
+  strategy: filesystem
+  tokensDbPath: /app/data/nx-cache-server-tokens.sqlite
+  filesystem:
+    cacheDir: /app/cache
+
+s3:
+  bucket: ''
+  region: ''
+  endpoint: ''
+  # Static credentials (optional). Leave empty to use the ServiceAccount's IAM
+  # role (IRSA), an ECS task role, or an instance profile via the AWS chain.
+  accessKeyId: ''
+  secretAccessKey: ''
+  sessionToken: ''
+  # An existing Secret with keys: access-key-id, secret-access-key, [session-token].
+  existingSecret: ''
+
+# Direct TLS (optional). Prefer ingress / reverse-proxy TLS for most setups.
+tls:
+  enabled: false
+  # A kubernetes.io/tls Secret providing tls.crt and tls.key.
+  existingSecret: ''
+  mountPath: /etc/remotecache/tls
+
+persistence:
+  data:
+    enabled: true
+    size: 1Gi
+    storageClass: ''
+    accessModes:
+      - ReadWriteOnce
+    existingClaim: ''
+  cache:
+    # Used only by the filesystem strategy.
+    enabled: true
+    size: 10Gi
+    storageClass: ''
+    accessModes:
+      - ReadWriteOnce
+    existingClaim: ''
+
+serviceAccount:
+  create: true
+  name: ''
+  # For IRSA, set: eks.amazonaws.com/role-arn: arn:aws:iam::<account>:role/<role>
+  annotations: {}
+
+service:
+  type: ClusterIP
+  port: 3000
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 5
+  periodSeconds: 10
+
+# Escape hatches.
+extraEnv: []
+extraVolumes: []
+extraVolumeMounts: []
+
+resources: {}
+podAnnotations: {}
+podLabels: {}
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+nodeSelector: {}
+tolerations: []
+affinity: {}
