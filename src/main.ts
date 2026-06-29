@@ -144,7 +144,13 @@ logger.info(`Server running at ${server.url}`);
 
 const shutdown = (signal: string) => {
   logger.info(`Received ${signal}, draining connections`);
-  server.stop().then(() => process.exit(0));
+  server
+    .stop()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      logger.error(error instanceof Error ? error.message : String(error));
+      process.exit(1);
+    });
 };
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));
