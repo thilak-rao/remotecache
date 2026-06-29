@@ -56,4 +56,4 @@ Nx Cloud has genuine advantages that a self-hosted cache cannot replicate.
 
 ## Ready to run it?
 
-Setup takes about five minutes. The [quickstart guide](/getting-started/quickstart/) walks through Docker Compose or Kubernetes deployment with token configuration.
+Setup takes about five minutes. The [quickstart guide](/getting-started/quickstart/) starts the server, creates a token, and points Nx at it; the [deployment guide](/deploy/docker/) covers Docker, Kubernetes, and standalone-binary installs.
