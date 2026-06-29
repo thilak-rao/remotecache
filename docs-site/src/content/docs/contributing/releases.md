@@ -40,7 +40,7 @@ The repository must also allow GitHub Actions to create pull requests.
 
 ## Docker publishing
 
-The Docker publishing workflow runs its own preflight gate before pushing images. It repeats the root checks, docs checks, Docker smoke test, and Trivy image scan so image publishing cannot race ahead of CI.
+The Docker publishing workflow runs its own preflight gate before pushing images. It repeats the root checks, docs checks, Docker smoke test against `/health`, and Trivy image scan so image publishing cannot race ahead of CI.
 
 Main builds publish `edge` and `sha-<short>`. Release tags publish `latest`, `X.Y.Z`, and `X.Y`. Release images are pushed for `linux/amd64` and `linux/arm64` with SBOM and provenance attestations.
 
