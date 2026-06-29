@@ -24,7 +24,7 @@ chart, Helm OCI publishing, standalone binary releases with provenance
 attestation, and release-please.
 
 Each prior plan updated docs as it landed, so the docs are not absent — they are
-*drifted*. A six-pass audit (HTTP API/OpenAPI, env vars, storage/S3,
+_drifted_. A six-pass audit (HTTP API/OpenAPI, env vars, storage/S3,
 deployment/Helm, release/security, Starlight structure) found the gaps below.
 The docs site is live at `https://remotecache.dev`, built with Astro Starlight;
 `starlight-links-validator` already fails the build on broken internal links,
@@ -72,7 +72,7 @@ misleading, Low = polish.
     to avoid collision with the filesystem `${hash}.tmp` write path.
 11. Prerelease publishing wording in `releases.md:47` implies prerelease tags
     skip Helm/binaries; both jobs fire for every `v*` tag
-    (`publish-image.yml:150,195`). Only *stable* tags move `latest`/`X.Y`/`X.Y.Z`.
+    (`publish-image.yml:150,195`). Only _stable_ tags move `latest`/`X.Y`/`X.Y.Z`.
 12. `compare/nx-cloud.md:59` claims the quickstart "walks through Docker Compose
     or Kubernetes deployment" — it does not.
 13. The new-user flow (`quickstart.md`) never shows the `/health` check the
@@ -105,11 +105,11 @@ orthogonal.
 Retire the `guides/deployment.md` monolith and split it by install path into a
 new top-level sidebar group, placed between "Getting started" and "Guides":
 
-| New page | Content |
-| --- | --- |
-| `deploy/docker.md` | Container image + the tag table, `docker run` (filesystem and S3), health checks, direct TLS (Docker), monitoring/metrics, and a `BIND_ADDRESS` note. This is the redirect target and the default deployment path. |
+| New page               | Content                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deploy/docker.md`     | Container image + the tag table, `docker run` (filesystem and S3), health checks, direct TLS (Docker), monitoring/metrics, and a `BIND_ADDRESS` note. This is the redirect target and the default deployment path.                                                                                                                                                            |
 | `deploy/kubernetes.md` | Helm OCI install (`oci://ghcr.io/thilak-rao/charts/remotecache`) and local-chart install, the values reference (including `config.verbose`, `service.type`, `replicaCount` + the filesystem `replicaCount: 1` / RWX caveat), `existingSecret` flow, S3 IRSA via `serviceAccount.annotations`, the TLS secret, probes on `/health`, and graceful shutdown for rolling updates. |
-| `deploy/binaries.md` | Download from the Releases page, verify with `checksums.txt` and `gh attestation verify`, run, and when to choose a binary over Docker (Docker stays the recommended production path). |
+| `deploy/binaries.md`   | Download from the Releases page, verify with `checksums.txt` and `gh attestation verify`, run, and when to choose a binary over Docker (Docker stays the recommended production path).                                                                                                                                                                                        |
 
 `astro.config.mjs` gains a `Deploy` sidebar group with these three entries and an
 Astro `redirects` entry mapping `/guides/deployment/` → `/deploy/docker/` so the
