@@ -45,4 +45,5 @@ Docs are part of the change, not a follow-up: any change to behavior, the HTTP A
 
 - Unit tests colocate beside their source as `*.spec.ts`; end-to-end tests live under `e2e/`.
 - Commits follow Conventional Commits (`type(scope): subject`).
-- CI runs format-check, lint, and test on every PR; all three must pass (`.github/workflows/ci.yml`). Pushing to `main` builds and pushes the GHCR image as `:latest` + `:sha-<short>`; pushing a `vX.Y.Z` tag publishes `:X.Y.Z` + `:X.Y` (`.github/workflows/publish-image.yml`).
+- CI runs format-check, lint, audits, tests, docs build, Docker smoke, and Trivy filesystem scan on every PR (`.github/workflows/ci.yml`). Pushing to `main` runs the Docker publish workflow after its preflight gate and publishes GHCR image tags `:edge` + `:sha-<short>`.
+  Pushing a `vX.Y.Z` tag publishes `:latest`, `:X.Y.Z`, and `:X.Y` for `linux/amd64` and `linux/arm64` (`.github/workflows/publish-image.yml`).
