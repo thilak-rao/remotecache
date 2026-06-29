@@ -17,13 +17,13 @@ The self-hosted Nx remote cache server reads all configuration from environment 
 | `CACHE_DIR`            | no       | `./cache`                              | Filesystem cache directory (filesystem strategy).                           |
 | `S3_REGION`            | for s3   | —                                      | S3 region.                                                                  |
 | `S3_BUCKET`            | for s3   | —                                      | S3 bucket.                                                                  |
-| `S3_ACCESS_KEY_ID`     | no       | —                                      | S3 access key. Omit (with the secret) to use the AWS credential chain.     |
-| `S3_SECRET_ACCESS_KEY` | no       | —                                      | S3 secret key. Omit (with the key id) to use the AWS credential chain.     |
-| `S3_SESSION_TOKEN`     | no       | —                                      | Session token for temporary S3 credentials (STS / assumed roles).          |
+| `S3_ACCESS_KEY_ID`     | no       | —                                      | S3 access key. Omit (with the secret) to use the AWS credential chain.      |
+| `S3_SECRET_ACCESS_KEY` | no       | —                                      | S3 secret key. Omit (with the key id) to use the AWS credential chain.      |
+| `S3_SESSION_TOKEN`     | no       | —                                      | Session token for temporary S3 credentials (STS / assumed roles).           |
 | `S3_ENDPOINT`          | no       | —                                      | Custom endpoint for MinIO / other S3-compatible providers.                  |
 | `BIND_ADDRESS`         | no       | `0.0.0.0`                              | Listen interface. Use `::` for IPv6 / dual-stack.                           |
-| `TLS_CERT_PATH`        | no       | —                                      | PEM certificate path. Set with `TLS_KEY_PATH` to serve HTTPS directly.     |
-| `TLS_KEY_PATH`         | no       | —                                      | PEM private-key path. Set with `TLS_CERT_PATH` to serve HTTPS directly.    |
+| `TLS_CERT_PATH`        | no       | —                                      | PEM certificate path. Set with `TLS_KEY_PATH` to serve HTTPS directly.      |
+| `TLS_KEY_PATH`         | no       | —                                      | PEM private-key path. Set with `TLS_CERT_PATH` to serve HTTPS directly.     |
 | `VERBOSE`              | no       | —                                      | Set `1` to print `logger.info`/`logger.log` output; errors always print.    |
 
 ## Notes
