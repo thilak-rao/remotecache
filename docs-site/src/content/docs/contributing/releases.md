@@ -36,7 +36,7 @@ The repository must also allow GitHub Actions to create pull requests.
 
 ## Tag policy
 
-`latest` is reserved for the latest stable release. `edge` is reserved for the latest successful `main` build. Release tags publish `X.Y.Z` and `X.Y` image tags.
+`latest` is reserved for the latest stable release. `edge` is reserved for the latest successful `main` build, alongside a `sha-<short>` tag pinned to the exact commit. Stable release tags publish `X.Y.Z` and `X.Y` image tags.
 
 ## Publishing
 
@@ -44,7 +44,7 @@ PR CI runs `helm lint` and `helm template` against the chart in `charts/remoteca
 
 The Docker publishing workflow runs its own preflight gate before pushing images. It repeats the root checks, docs checks, Docker smoke test against `/health`, and Trivy image scan so image publishing cannot race ahead of CI.
 
-Main builds publish `edge` and `sha-<short>`. Stable release tags publish `latest`, `X.Y.Z`, and `X.Y`; a prerelease tag (e.g. `v3.0.0-rc.1`) publishes only the exact `X.Y.Z-…` image and never updates `latest`. Release images are pushed for `linux/amd64` and `linux/arm64` with SBOM and provenance. Release tags also publish the Helm chart and the Core 5 binaries (linux/macOS/Windows).
+Main builds publish `edge` and `sha-<short>`. Every version tag (`v*.*.*`, including prereleases) publishes the Helm chart, the Core 5 binaries (linux/macOS/Windows), and the exact `X.Y.Z` image; stable release tags additionally move `latest`, `X.Y.Z`, and `X.Y`, while a prerelease tag (e.g. `v3.0.0-rc.1`) never updates `latest`. Release images are pushed for `linux/amd64` and `linux/arm64` with SBOM and provenance.
 
 ## If a release does not appear
 
