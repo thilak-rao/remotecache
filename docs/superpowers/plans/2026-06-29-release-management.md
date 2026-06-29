@@ -30,6 +30,7 @@ This plan assumes the repository already has tags `v1.0.0` and `v2.0.0`. Bootstr
 ## Task 1: Add Release Please config files
 
 **Files:**
+
 - Create: `release-please-config.json`
 - Create: `.release-please-manifest.json`
 - Create: `version.txt`
@@ -112,6 +113,7 @@ git commit -m "chore(release): bootstrap release-please config"
 ## Task 2: Add the Release Please workflow
 
 **Files:**
+
 - Create: `.github/workflows/release.yml`
 
 - [ ] **Step 1: Create `.github/workflows/release.yml`**
@@ -187,6 +189,7 @@ git commit -m "ci(release): add release-please workflow"
 ## Task 3: Document the release flow
 
 **Files:**
+
 - Create: `docs-site/src/content/docs/contributing/releases.md`
 - Modify: `docs-site/astro.config.mjs`
 - Modify: `CONTRIBUTING.md`
@@ -300,6 +303,7 @@ git commit -m "docs(release): document release workflow"
 ## Task 4: Verify the release-management change
 
 **Files:**
+
 - Validate: `release-please-config.json`
 - Validate: `.release-please-manifest.json`
 - Validate: `.github/workflows/release.yml`
@@ -387,6 +391,7 @@ Skip this commit if there are no changes.
 ## Task 5: Repository setup after merge
 
 **Files:**
+
 - No repository files.
 
 These steps happen after the PR merges, because they require repository settings and secrets.
