@@ -13,9 +13,9 @@ Token values are hashed with SHA-256 before they hit the database (`src/token/ha
 
 ## Input validation
 
-Cache hash parameters are validated before any storage access (`src/cache/is-valid-hash.ts`), rejecting path traversal sequences and anything that doesn't match the expected hash format with `400`.
+Cache hash parameters are validated before any storage access against `[A-Za-z0-9_-]`, 1–128 characters (`src/cache/is-valid-hash.ts`). All dots are rejected — not just `..` — meaning a hash can never collide with the filesystem strategy's `${hash}.tmp` write path or resolve to the cache directory or its parent. Anything outside that allowlist, or longer than 128 characters, returns `400`.
 
-`PUT /v1/cache/:hash` requires a valid `Content-Length` header (a non-negative integer). Requests without one, or with a non-integer value, return `400`.
+`PUT /v1/cache/:hash` requires a valid `Content-Length` header (a positive integer). Requests without one, or with a non-integer or non-positive value, return `400`.
 
 ## Append-only writes
 
@@ -57,21 +57,4 @@ use of that lever is on you.
 
 ## HTTP status reference
 
-### `GET /v1/cache/:hash`
-
-| Status | Meaning                                                    |
-| ------ | ---------------------------------------------------------- |
-| `200`  | Entry found; body is `application/octet-stream`            |
-| `400`  | Hash is invalid (rejects path traversal / malformed input) |
-| `403`  | Token lacks read permission                                |
-| `404`  | Entry not found                                            |
-
-### `PUT /v1/cache/:hash`
-
-| Status | Meaning                                                 |
-| ------ | ------------------------------------------------------- |
-| `200`  | Entry written                                           |
-| `400`  | `Content-Length` missing or invalid, or hash is invalid |
-| `403`  | Token lacks write permission                            |
-| `409`  | Entry already exists                                    |
-| `413`  | Upload exceeds `MAX_UPLOAD_BYTES`                       |
+The [API Reference](/api/) lists the exact status codes, request, and response shapes for every endpoint, generated from the OpenAPI specification.
