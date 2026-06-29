@@ -1,0 +1,12 @@
+remotecache is deploying.
+
+Service: {{ include "remotecache.fullname" . }} ({{ .Values.service.type }}) on port {{ .Values.service.port }}.
+Storage: {{ .Values.storage.strategy }}{{ if eq .Values.storage.strategy "s3" }} (bucket {{ .Values.s3.bucket }}){{ end }}.
+TLS: {{ if .Values.tls.enabled }}enabled (secret {{ .Values.tls.existingSecret }}){{ else }}disabled — terminate TLS at your ingress or proxy{{ end }}.
+
+Check health (unauthenticated):
+
+  kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "remotecache.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  curl -fsS http{{ if .Values.tls.enabled }}s{{ end }}://127.0.0.1:{{ .Values.service.port }}/health
+
+Then create a token with your ADMIN_TOKEN against POST /v1/admin/tokens.

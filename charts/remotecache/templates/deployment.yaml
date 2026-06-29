@@ -1,0 +1,184 @@
+{{- if and (not .Values.adminToken) (not .Values.existingSecret) }}
+{{- fail "remotecache: set either .Values.adminToken or .Values.existingSecret" }}
+{{- end }}
+{{- if and (eq .Values.storage.strategy "s3") (not .Values.s3.bucket) }}
+{{- fail "remotecache: storage.strategy=s3 requires s3.bucket" }}
+{{- end }}
+{{- if and .Values.tls.enabled (not .Values.tls.existingSecret) }}
+{{- fail "remotecache: tls.enabled requires tls.existingSecret (a kubernetes.io/tls Secret)" }}
+{{- end }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "remotecache.fullname" . }}
+  labels:
+    {{- include "remotecache.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "remotecache.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "remotecache.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "remotecache.serviceAccountName" . }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.config.port }}
+              protocol: TCP
+          env:
+            - name: ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "remotecache.adminSecretName" . }}
+                  key: {{ include "remotecache.adminSecretKey" . }}
+            - name: PORT
+              value: {{ .Values.config.port | quote }}
+            - name: BIND_ADDRESS
+              value: {{ .Values.config.bindAddress | quote }}
+            - name: MAX_UPLOAD_BYTES
+              value: {{ .Values.config.maxUploadBytes | quote }}
+            - name: TOKENS_DB_PATH
+              value: {{ .Values.storage.tokensDbPath | quote }}
+            - name: STORAGE_STRATEGY
+              value: {{ .Values.storage.strategy | quote }}
+            {{- if .Values.config.verbose }}
+            - name: VERBOSE
+              value: "1"
+            {{- end }}
+            {{- if eq .Values.storage.strategy "filesystem" }}
+            - name: CACHE_DIR
+              value: {{ .Values.storage.filesystem.cacheDir | quote }}
+            {{- end }}
+            {{- if eq .Values.storage.strategy "s3" }}
+            - name: S3_BUCKET
+              value: {{ .Values.s3.bucket | quote }}
+            {{- if .Values.s3.region }}
+            - name: S3_REGION
+              value: {{ .Values.s3.region | quote }}
+            {{- end }}
+            {{- if .Values.s3.endpoint }}
+            - name: S3_ENDPOINT
+              value: {{ .Values.s3.endpoint | quote }}
+            {{- end }}
+            {{- if or .Values.s3.existingSecret .Values.s3.accessKeyId }}
+            - name: S3_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "remotecache.s3SecretName" . }}
+                  key: access-key-id
+            - name: S3_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "remotecache.s3SecretName" . }}
+                  key: secret-access-key
+            - name: S3_SESSION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "remotecache.s3SecretName" . }}
+                  key: session-token
+                  optional: true
+            {{- end }}
+            {{- end }}
+            {{- if .Values.tls.enabled }}
+            - name: TLS_CERT_PATH
+              value: {{ printf "%s/tls.crt" .Values.tls.mountPath | quote }}
+            - name: TLS_KEY_PATH
+              value: {{ printf "%s/tls.key" .Values.tls.mountPath | quote }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+              scheme: {{ if .Values.tls.enabled }}HTTPS{{ else }}HTTP{{ end }}
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+              scheme: {{ if .Values.tls.enabled }}HTTPS{{ else }}HTTP{{ end }}
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ dir .Values.storage.tokensDbPath }}
+            {{- if eq .Values.storage.strategy "filesystem" }}
+            - name: cache
+              mountPath: {{ .Values.storage.filesystem.cacheDir }}
+            {{- end }}
+            {{- if .Values.tls.enabled }}
+            - name: tls
+              mountPath: {{ .Values.tls.mountPath }}
+              readOnly: true
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: data
+          {{- if .Values.persistence.data.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.data.existingClaim | default (printf "%s-data" (include "remotecache.fullname" .)) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if eq .Values.storage.strategy "filesystem" }}
+        - name: cache
+          {{- if .Values.persistence.cache.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ .Values.persistence.cache.existingClaim | default (printf "%s-cache" (include "remotecache.fullname" .)) }}
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- end }}
+        {{- if .Values.tls.enabled }}
+        - name: tls
+          secret:
+            secretName: {{ .Values.tls.existingSecret }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
