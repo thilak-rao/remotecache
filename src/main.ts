@@ -131,3 +131,11 @@ export const server = Bun.serve({
 });
 
 logger.info(`Server running at ${server.url}`);
+
+const shutdown = (signal: string) => {
+  logger.info(`Received ${signal}, draining connections`);
+  server.stop().then(() => process.exit(0));
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
