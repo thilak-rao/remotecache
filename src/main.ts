@@ -17,6 +17,7 @@ import { getHealth } from './health/get-health';
 
 const ADMIN_TOKEN = Bun.env.ADMIN_TOKEN;
 const PORT = Number(Bun.env.PORT ?? '3000');
+const HOSTNAME = Bun.env.BIND_ADDRESS ?? '0.0.0.0';
 const TOKENS_DB_PATH = Bun.env.TOKENS_DB_PATH;
 const MAX_UPLOAD_BYTES = Number(Bun.env.MAX_UPLOAD_BYTES ?? '524288000');
 const storage = createCacheStorage(Bun.env);
@@ -68,6 +69,7 @@ const getTokenPermission = (headers: Headers): TokenPermission => {
 
 export const server = Bun.serve({
   port: PORT,
+  hostname: HOSTNAME,
   routes: {
     '/health': {
       GET: () => getHealth(),
