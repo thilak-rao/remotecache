@@ -14,6 +14,7 @@ import { safeEqual } from './safe-equal';
 import { MetricsRegistry } from './metrics/metrics-registry';
 import { getMetrics } from './metrics/get-metrics';
 import { getHealth } from './health/get-health';
+import { loadTlsConfig, type TlsConfig } from './tls/load-tls-config';
 
 const ADMIN_TOKEN = Bun.env.ADMIN_TOKEN;
 const PORT = Number(Bun.env.PORT ?? '3000');
@@ -36,6 +37,14 @@ if (!Number.isFinite(MAX_UPLOAD_BYTES) || MAX_UPLOAD_BYTES <= 0) {
 
 if (!ADMIN_TOKEN) {
   logger.error('Error: ADMIN_TOKEN environment variable must be set.');
+  process.exit(1);
+}
+
+let tls: TlsConfig | undefined;
+try {
+  tls = await loadTlsConfig(Bun.env);
+} catch (error) {
+  logger.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 }
 
@@ -70,6 +79,7 @@ const getTokenPermission = (headers: Headers): TokenPermission => {
 export const server = Bun.serve({
   port: PORT,
   hostname: HOSTNAME,
+  ...(tls ? { tls } : {}),
   routes: {
     '/health': {
       GET: () => getHealth(),
