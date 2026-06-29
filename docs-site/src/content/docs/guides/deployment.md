@@ -41,6 +41,16 @@ docker run -p 3000:3000 \
 
 For S3 storage, omit the `./cache` volume and pass the S3 environment variables instead. The `./data` volume is still needed for the token database. See [Storage strategies](/guides/storage-strategies/) for details.
 
+## Health checks
+
+`GET /health` returns `200 OK` with a plain text `OK` body and does not require a token. Use it for container and orchestrator liveness/readiness checks.
+
+This endpoint confirms the server process is running and accepting requests. It does not validate filesystem or S3 backend reachability.
+
+```sh
+curl -fsS http://localhost:3000/health
+```
+
 ## Monitoring
 
 The server exposes Prometheus metrics at `GET /metrics` in the text exposition format (version 0.0.4):

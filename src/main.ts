@@ -13,6 +13,7 @@ import { isValidHash } from './cache/is-valid-hash';
 import { safeEqual } from './safe-equal';
 import { MetricsRegistry } from './metrics/metrics-registry';
 import { getMetrics } from './metrics/get-metrics';
+import { getHealth } from './health/get-health';
 
 const ADMIN_TOKEN = Bun.env.ADMIN_TOKEN;
 const PORT = Number(Bun.env.PORT ?? '3000');
@@ -68,6 +69,9 @@ const getTokenPermission = (headers: Headers): TokenPermission => {
 export const server = Bun.serve({
   port: PORT,
   routes: {
+    '/health': {
+      GET: () => getHealth(),
+    },
     '/metrics': {
       GET: () => getMetrics(metrics),
     },
