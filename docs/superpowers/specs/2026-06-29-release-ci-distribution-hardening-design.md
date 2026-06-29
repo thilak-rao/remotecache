@@ -550,6 +550,91 @@ Build Push Action, Docker Metadata Action, Trivy, and Helm docs. `ctx7` was not
 installed directly in this shell, so the documented `npx ctx7@latest` path was
 used without adding a project dependency.
 
+## Roadmap Expansion (2026-06-29, mined from `nxcite/nx-cache-server`)
+
+After Plan 4 (`/health`), the `nxcite/nx-cache-server` project (Rust/Axum, S3-only)
+was mined for borrowable ideas, the same way `IKatsuba/nx-cache-server` was mined
+for the original spec. Four parallel agents dug through its source. The findings
+adjust this roadmap as follows.
+
+### Where remotecache already leads (document as differentiators, no work)
+
+- Constant-time token comparison: ours (SHA-256 digest then `timingSafeEqual`)
+  has no length oracle; their `subtle::ConstantTimeEq` leaks token length.
+- Streaming uploads: we stream `PUT` bodies; they buffer the whole body in RAM
+  (acknowledged `TODO`).
+- Upload size limit: we enforce `MAX_UPLOAD_BYTES`; they use `usize::MAX`.
+
+### Folded into the Helm plan (Phase 5), with Phase 7 pulled forward
+
+The Helm chart phase and the TLS phase are implemented together so the chart
+never advertises an option the server cannot honor. The plan is
+`docs/superpowers/plans/2026-06-29-helm-chart-tls-and-borrowed-server-features.md`.
+It adds, alongside the chart and direct TLS:
+
+- IRSA / ambient AWS credentials. `Bun.S3Client` reads static `S3_*`/`AWS_*`
+  credentials (including `AWS_SESSION_TOKEN`) but does not perform the STS
+  web-identity exchange that EKS IRSA and ECS task roles need. Decision:
+  resolve credentials through `@aws-sdk/credential-providers`
+  (`fromNodeProviderChain`) with refresh-on-expiry. This is an approved, scoped
+  exception to the "Bun built-ins, no extra deps" rule and the only new runtime
+  dependency. It forces the Dockerfile to install dependencies.
+- `BIND_ADDRESS` with IPv6 (`::`) via `Bun.serve({ hostname })`.
+- Graceful shutdown: drain in-flight requests on `SIGTERM`/`SIGINT` via
+  `server.stop()`.
+- Hash hardening: reject dots and cap length at 128 in `isValidHash`. Dots
+  could collide with the filesystem strategy's `${hash}.tmp` write path — a real
+  integrity invariant break, low real-world likelihood (Nx hashes are dotless
+  hex), trivial fix.
+
+### New phases (each its own later plan)
+
+11. **Binary distribution channel.** Cross-platform standalone executables via
+    `bun build --compile --minify` (linux/macOS/windows, x64+arm64) attached to
+    GitHub Releases with a `checksums.txt`, alongside Docker. Auto-mark
+    prereleases. No native add-ons exist (`bun:sqlite` is embedded), so
+    cross-compilation is clean. Docker stays the recommended production path.
+12. **S3 robustness and a MinIO integration-test path.** `force_path_style` for
+    custom endpoints (a blocker for MinIO integration tests — verify the
+    `Bun.S3Client` capability or work around it), `S3_TIMEOUT` via
+    `AbortSignal`, endpoint-scheme and partial-credential startup validation
+    with actionable per-field error messages, and tracking the append-only
+    TOCTOU window toward an `If-None-Match` conditional PUT once Bun exposes it.
+    This expands the planned S3 integration-test phase.
+13. **CI/CD DRY and run summaries.** Extract the duplicated preflight steps
+    (`ci.yml` and `publish-image.yml` are ~80% identical) into composite Actions
+    under `.github/actions/`, and write `$GITHUB_STEP_SUMMARY` from the
+    publish/release jobs.
+14. **Docs polish.** A `/health` verify step in the README quickstart, a "watch
+    releases" call to action, and a Google Site Verification meta tag (if the
+    property is not already verified by another method). Fold into the docs/DX
+    phase.
+15. **Final docs-site revision.** After the full implementation lands, a
+    dedicated pass to revise and update the documentation site end to end.
+
+### Deferred / skipped
+
+- `DEBUG` rename of `VERBOSE` — skip; breaking change, no functional benefit.
+- `401` for missing auth vs the current `403`-everywhere — defer; the uniform
+  `403` is a deliberate non-disclosure stance.
+- `If-None-Match` conditional PUT — defer; `Bun.S3Client` does not expose it yet
+  (tracked under the S3 robustness phase).
+
+### Revised implementation order (from step 5 onward)
+
+5. Helm chart **and** direct TLS together, with IRSA/ambient creds,
+   `BIND_ADDRESS`, graceful shutdown, and hash hardening (the combined Plan 5).
+6. Helm OCI publishing on release tags.
+7. ~~TLS support~~ — pulled forward into step 5.
+8. S3 integration test path (now expanded by Phase 12).
+9. Real Nx e2e path.
+10. Docs and DX cleanup (now including Phases 13–14).
+11. Binary distribution channel.
+12. S3 robustness and MinIO integration tests.
+13. CI/CD DRY and run summaries.
+14. Docs polish.
+15. Final docs-site revision.
+
 ## Spec Self-Review
 
 - No placeholders remain.
