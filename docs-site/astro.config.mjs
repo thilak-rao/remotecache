@@ -7,6 +7,9 @@ import starlightLinksValidator from 'starlight-links-validator';
 // https://astro.build/config
 export default defineConfig({
   site: 'https://remotecache.dev',
+  redirects: {
+    '/guides/deployment/': '/deploy/docker/',
+  },
   integrations: [
     starlight({
       title: 'remotecache',
@@ -59,6 +62,14 @@ export default defineConfig({
           items: [{ label: 'Quickstart', slug: 'getting-started/quickstart' }],
         },
         {
+          label: 'Deploy',
+          items: [
+            { label: 'Docker', slug: 'deploy/docker' },
+            { label: 'Kubernetes & Helm', slug: 'deploy/kubernetes' },
+            { label: 'Standalone binaries', slug: 'deploy/binaries' },
+          ],
+        },
+        {
           label: 'Guides',
           items: [
             { label: 'Configuration', slug: 'guides/configuration' },
@@ -66,7 +77,6 @@ export default defineConfig({
             { label: 'Token & admin API', slug: 'guides/tokens' },
             { label: 'Security model', slug: 'guides/security' },
             { label: 'Migrate from @nx/s3-cache', slug: 'guides/migrate-from-nx-s3-cache' },
-            { label: 'Deployment', slug: 'guides/deployment' },
           ],
         },
         {

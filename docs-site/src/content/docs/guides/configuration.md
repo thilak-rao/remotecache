@@ -45,6 +45,6 @@ For S3, set `STORAGE_STRATEGY=s3` and `S3_BUCKET`. Provide credentials one of tw
 
 `BIND_ADDRESS` sets the listen interface (`0.0.0.0` by default; `::` for IPv6). On `SIGTERM`/`SIGINT`, the server drains in-flight requests before exiting — Kubernetes rolling updates and `docker stop` wait for active uploads to finish.
 
-Set `TLS_CERT_PATH` and `TLS_KEY_PATH` together to serve HTTPS directly; the server exits on startup if only one is set or a file is missing. For most deployments, terminate TLS at an ingress or reverse proxy instead. See [Deployment](/guides/deployment/) for the direct-TLS and Helm details.
+Set `TLS_CERT_PATH` and `TLS_KEY_PATH` together to serve HTTPS directly; the server exits on startup if only one is set or a file is missing. For most deployments, terminate TLS at an ingress or reverse proxy instead. See [Docker](/deploy/docker/#direct-tls) for direct TLS and [Kubernetes & Helm](/deploy/kubernetes/) for the chart.
 
 Errors always print. Set `VERBOSE=1` to also see request details and cache hits/misses.
