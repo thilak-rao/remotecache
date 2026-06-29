@@ -77,6 +77,29 @@ jobs:
         if: always()
         run: docker rm -f remotecache-ci || true
 
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v3.16.3
+
+      - name: Helm lint
+        run: helm lint charts/remotecache --set adminToken=ci-admin-token
+
+      - name: Helm template (filesystem)
+        run: helm template rc charts/remotecache -f charts/remotecache/ci/filesystem-values.yaml
+
+      - name: Helm template (s3)
+        run: helm template rc charts/remotecache -f charts/remotecache/ci/s3-values.yaml
+
+      - name: Helm template (tls)
+        run: helm template rc charts/remotecache -f charts/remotecache/ci/tls-values.yaml
+
   security:
     runs-on: ubuntu-latest
     permissions:
