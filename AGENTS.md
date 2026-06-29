@@ -1,6 +1,6 @@
 # remotecache
 
-Self-hosted Nx Remote Cache server on the Bun runtime. Implements the Nx self-hosted remote cache HTTP API (`GET`/`PUT /v1/cache/:hash`) plus a token admin API (`/v1/admin/tokens`). See https://remotecache.dev/ for the full API surface, environment variables, and deployment; @README.md is the quickstart landing.
+Self-hosted Nx Remote Cache server on the Bun runtime. Implements the Nx self-hosted remote cache HTTP API (`GET`/`PUT /v1/cache/:hash`), `GET /metrics`, `GET /health`, and the token admin API (`/v1/admin/tokens`). See https://remotecache.dev/ for the full API surface, environment variables, and deployment; @README.md is the quickstart landing.
 
 ## Runtime: Bun, not Node
 

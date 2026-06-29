@@ -6,6 +6,26 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/health": {
+      "get": {
+        "description": "Lightweight unauthenticated health check for container and orchestrator probes. Returns OK when the server process is running and accepting requests; it does not validate filesystem or S3 backend reachability.",
+        "operationId": "getHealth",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Server is running",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "OK"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/metrics": {
       "get": {
         "description": "Prometheus metrics in the text exposition format (version 0.0.4). Unauthenticated and meant to be scraped over a private network; restrict it to your metrics collector and never expose it publicly. Reports cache request counters by method and result (the GET hit/miss split is the cache hit-rate, and PUT 'forbidden' counts read-only tokens rejected from writing) plus total bytes accepted by successful uploads.",

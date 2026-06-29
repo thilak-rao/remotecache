@@ -21,6 +21,7 @@ Nx's official self-hosted cache went free, then paid ($250/seat/year Powerpack),
   - `GET /v1/cache/:hash` (download)
   - `PUT /v1/cache/:hash` (upload)
 - Prometheus metrics at `GET /metrics` (unauthenticated; cache hit-rate, request counts, uploaded bytes)
+- Health check at `GET /health` (unauthenticated; process liveness)
 - Token-based auth
   - **readonly** tokens can download
   - **full** tokens can download + upload
@@ -67,6 +68,7 @@ docker run -p 3000:3000 \
 ```
 
 `latest` points at the newest stable release. Use `edge` only for unreleased builds from `main`.
+Health checks can call `GET /health` without a token.
 
 See the [Deployment guide](https://remotecache.dev/guides/deployment/) for S3 storage and production setup.
 
