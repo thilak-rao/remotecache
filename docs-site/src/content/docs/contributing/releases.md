@@ -40,6 +40,8 @@ The repository must also allow GitHub Actions to create pull requests.
 
 ## Docker publishing
 
+PR CI also runs `helm lint` and `helm template` against the chart in `charts/remotecache/` (filesystem, S3, and TLS value sets). Publishing the chart as an OCI artifact to GHCR is a separate, later step and is not wired yet.
+
 The Docker publishing workflow runs its own preflight gate before pushing images. It repeats the root checks, docs checks, Docker smoke test against `/health`, and Trivy image scan so image publishing cannot race ahead of CI.
 
 Main builds publish `edge` and `sha-<short>`. Release tags publish `latest`, `X.Y.Z`, and `X.Y`. Release images are pushed for `linux/amd64` and `linux/arm64` with SBOM and provenance attestations.

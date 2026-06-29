@@ -11,10 +11,11 @@ This project runs on Bun and uses Bun's built-ins. Do not add Node-only equivale
 - Tests: `bun:test` — not Jest or Vitest.
 - Env: `Bun.env` — not `process.env`.
 - Install: `bun install` — not npm, pnpm, or yarn.
+- Exception: `@aws-sdk/credential-providers` is the one approved runtime dependency, used for AWS provider chain / IRSA credential resolution; the Dockerfile runs `bun install --frozen-lockfile --production`.
 
 ## Commands
 
-- `bun run serve` — start the server. Requires `ADMIN_TOKEN`; it exits on startup without one.
+- `bun run serve` — start the server. Requires `ADMIN_TOKEN`; it exits on startup without one. Optional: `BIND_ADDRESS` (default `0.0.0.0:3000`), `TLS_CERT_PATH`/`TLS_KEY_PATH` for direct TLS, `S3_SESSION_TOKEN`; S3 access key/secret are optional when the AWS provider chain (IRSA, ECS, IMDS) resolves credentials. The server drains in-flight requests on `SIGTERM`/`SIGINT`.
 - `bun test` — run all colocated `*.spec.ts` and `e2e/*.e2e.spec.ts`. There is no test script; invoke `bun test` directly.
 - `bun run lint` — oxlint.
 - `bun run format` — oxfmt (rewrites files). The CI gate is `bun run format --check`, so format before committing.
@@ -45,5 +46,5 @@ Docs are part of the change, not a follow-up: any change to behavior, the HTTP A
 
 - Unit tests colocate beside their source as `*.spec.ts`; end-to-end tests live under `e2e/`.
 - Commits follow Conventional Commits (`type(scope): subject`).
-- CI runs format-check, lint, audits, tests, docs build, Docker smoke, and Trivy filesystem scan on every PR (`.github/workflows/ci.yml`). Pushing to `main` runs the Docker publish workflow after its preflight gate and publishes GHCR image tags `:edge` + `:sha-<short>`.
+- CI runs format-check, lint, audits, tests, docs build, Docker smoke, Helm lint/template, and Trivy filesystem scan on every PR (`.github/workflows/ci.yml`). The Helm chart lives in `charts/remotecache/`. Pushing to `main` runs the Docker publish workflow after its preflight gate and publishes GHCR image tags `:edge` + `:sha-<short>`.
   Pushing a `vX.Y.Z` tag publishes `:latest`, `:X.Y.Z`, and `:X.Y` for `linux/amd64` and `linux/arm64` (`.github/workflows/publish-image.yml`).

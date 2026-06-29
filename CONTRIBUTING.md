@@ -31,14 +31,23 @@ Docker changes should also pass a local image smoke test:
 ```sh
 docker build -t remotecache:ci .
 docker run -d --name remotecache-ci -e ADMIN_TOKEN=test-token -p 3000:3000 remotecache:ci
-curl -fsS http://127.0.0.1:3000/metrics
+curl -fsS http://127.0.0.1:3000/health
 docker rm -f remotecache-ci
+```
+
+Chart changes should pass lint and template rendering:
+
+```sh
+helm lint charts/remotecache --set adminToken=ci-admin-token
+helm template rc charts/remotecache -f charts/remotecache/ci/filesystem-values.yaml
+helm template rc charts/remotecache -f charts/remotecache/ci/s3-values.yaml
+helm template rc charts/remotecache -f charts/remotecache/ci/tls-values.yaml
 ```
 
 ## Conventions
 
 - Conventional Commits: `type(scope): subject` (`feat|fix|docs|refactor|perf|test|build|ci|chore|revert`).
-- Bun built-ins only — no Node-only equivalents or extra deps for what Bun provides.
+- Bun built-ins only — no Node-only equivalents or extra deps for what Bun provides. The one approved exception is `@aws-sdk/credential-providers`, used to resolve EKS IRSA / ECS / IMDS credentials that `Bun.S3Client` cannot resolve natively.
 - Docs travel with code: a change to behavior, the HTTP API, env vars, or config updates the matching docs surface in the same commit (see `AGENTS.md`).
 - Full docs: https://remotecache.dev/
 
@@ -52,4 +61,4 @@ The release workflow needs a `RELEASE_PLEASE_TOKEN` repository secret. See the r
 
 ## Pull requests
 
-CI must pass: format, lint, tests, audits, docs build, Docker smoke, Trivy filesystem scan, and CodeQL. Keep PRs focused.
+CI must pass: format, lint, tests, audits, docs build, Docker smoke, Helm lint/template, Trivy filesystem scan, and CodeQL. Keep PRs focused.

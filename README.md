@@ -30,6 +30,8 @@ Nx's official self-hosted cache went free, then paid ($250/seat/year Powerpack),
   - local filesystem (default)
   - S3-compatible storage (AWS S3, MinIO, etc.)
 - SQLite-backed token store
+- Direct TLS (`TLS_CERT_PATH` + `TLS_KEY_PATH`) or terminate TLS at your proxy/ingress
+- Helm chart for Kubernetes (`charts/remotecache/`)
 
 ## Quickstart
 
@@ -70,7 +72,7 @@ docker run -p 3000:3000 \
 `latest` points at the newest stable release. Use `edge` only for unreleased builds from `main`.
 Health checks can call `GET /health` without a token.
 
-See the [Deployment guide](https://remotecache.dev/guides/deployment/) for S3 storage and production setup.
+For Kubernetes, install the Helm chart in `charts/remotecache/`. See the [Deployment guide](https://remotecache.dev/guides/deployment/).
 
 ## Links
 
