@@ -58,7 +58,7 @@ export class S3Strategy implements CacheStorageStrategy {
       this.#client = this.#build(creds);
       this.#expiration = creds.expiration ? creds.expiration.getTime() : null;
     }
-    return this.#client;
+    return this.#client as Bun.S3Client;
   }
 
   async exists(hash: string): Promise<boolean> {
