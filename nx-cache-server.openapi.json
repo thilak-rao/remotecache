@@ -85,7 +85,8 @@
             "description": "The file size in bytes",
             "required": true,
             "schema": {
-              "type": "number"
+              "type": "integer",
+              "minimum": 1
             },
             "name": "Content-Length"
           },
@@ -152,6 +153,7 @@
         "parameters": [
           {
             "name": "hash",
+            "description": "The task hash corresponding to the cache artifact to download.",
             "in": "path",
             "required": true,
             "schema": {
@@ -172,7 +174,7 @@
         ],
         "responses": {
           "200": {
-            "description": "A list of tokens. Note: token values are masked.",
+            "description": "A list of tokens. Token values are omitted; they are stored hashed and cannot be recovered.",
             "content": {
               "application/json": {
                 "schema": {
@@ -220,6 +222,9 @@
           },
           "403": {
             "$ref": "#/components/responses/AccessForbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           }
         }
       }
@@ -292,7 +297,20 @@
           },
           "value": {
             "type": "string",
-            "description": "The token value. Returned unmasked only when creating a token; listing tokens returns masked values."
+            "description": "The token value. Returned only when creating a token; absent from list responses."
+          },
+          "permission": {
+            "$ref": "#/components/schemas/TokenPermission"
+          }
+        }
+      },
+      "TokenSummary": {
+        "type": "object",
+        "required": ["id", "permission"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "A human-friendly identifier for the token (e.g. a CI system name)."
           },
           "permission": {
             "$ref": "#/components/schemas/TokenPermission"
@@ -318,7 +336,7 @@
           "tokens": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/TokenRecord"
+              "$ref": "#/components/schemas/TokenSummary"
             }
           }
         }
@@ -341,6 +359,16 @@
       },
       "BadRequest": {
         "description": "Bad request",
+        "content": {
+          "text/plain": {
+            "schema": {
+              "$ref": "#/components/schemas/PlainTextError"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Conflict — the token id or value already exists",
         "content": {
           "text/plain": {
             "schema": {
