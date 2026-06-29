@@ -591,7 +591,6 @@ git commit -m "chore(health): verify probe endpoint"
 
 Skip this commit if there are no changes.
 
-
 ## Plan self-review
 
 - Spec coverage: covers the approved `/health` endpoint phase and prepares later Helm probes without implementing Helm.
