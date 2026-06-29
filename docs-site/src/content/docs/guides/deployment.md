@@ -51,6 +51,53 @@ This endpoint confirms the server process is running and accepting requests. It 
 curl -fsS http://localhost:3000/health
 ```
 
+## Kubernetes (Helm)
+
+A Helm chart lives in `charts/remotecache/`. Install it from a checkout of the repository:
+
+```sh
+helm install remotecache ./charts/remotecache \
+  --set adminToken="change-me"
+```
+
+Reference an existing Secret instead of a literal token:
+
+```sh
+helm install remotecache ./charts/remotecache \
+  --set existingSecret=remotecache-admin \
+  --set existingSecretKey=admin-token
+```
+
+The chart defaults to filesystem storage with PersistentVolumeClaims for the token database and cache. Probes call the unauthenticated `/health` endpoint.
+
+For S3 with EKS IRSA — no static keys, credentials resolved from the pod's IAM role:
+
+```sh
+helm install remotecache ./charts/remotecache \
+  --set adminToken="change-me" \
+  --set storage.strategy=s3 \
+  --set s3.bucket=my-cache-bucket \
+  --set s3.region=us-east-1 \
+  --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"=arn:aws:iam::123456789012:role/remotecache
+```
+
+Key values: `image.repository`/`image.tag`, `adminToken`/`existingSecret`, `storage.strategy`, `s3.*`, `tls.*`, `persistence.*`, `serviceAccount.annotations`, `config.maxUploadBytes`, `config.bindAddress`, `resources`, and the `extraEnv`/`extraVolumes`/`extraVolumeMounts` escape hatches. See `charts/remotecache/values.yaml` for the full list.
+
+## Direct TLS
+
+The server can terminate TLS itself. Mount a certificate and key, then point the server at them with `TLS_CERT_PATH` and `TLS_KEY_PATH`:
+
+```sh
+docker run -p 3000:3000 \
+  -e ADMIN_TOKEN="change-me" \
+  -e TLS_CERT_PATH=/certs/tls.crt \
+  -e TLS_KEY_PATH=/certs/tls.key \
+  -v "$PWD/certs:/certs:ro" \
+  ghcr.io/thilak-rao/remotecache:latest
+```
+
+Set both variables or neither — the server exits on startup if only one is set, or if a file is missing. In the Helm chart, set `tls.enabled=true` and `tls.existingSecret` to a `kubernetes.io/tls` Secret; the chart mounts it and switches the probes to HTTPS. For most deployments, terminating TLS at an ingress or reverse proxy is simpler.
+
 ## Monitoring
 
 The server exposes Prometheus metrics at `GET /metrics` in the text exposition format (version 0.0.4):
