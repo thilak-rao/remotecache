@@ -15,6 +15,10 @@ hero:
     - text: Quickstart
       link: /getting-started/quickstart/
       icon: right-arrow
+    - text: Deploy
+      link: /deploy/docker/
+      icon: rocket
+      variant: minimal
     - text: Why this exists
       link: /why/
       icon: open-book
@@ -40,7 +44,7 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
     Local disk by default, or any S3-compatible bucket (AWS S3, MinIO).
   </Card>
   <Card title="One small Bun container" icon="seti:typescript">
-    `Bun.serve` + `bun:sqlite`, shipped as a non-root image on GHCR.
+    `Bun.serve` + `bun:sqlite`, shipped as a non-root image on GHCR. [Deploy it →](/deploy/docker/)
   </Card>
 </CardGrid>
 

@@ -16,6 +16,12 @@ ADMIN_TOKEN="change-me" bun run serve
 
 Starts on `http://localhost:3000` by default. The [Configuration](/guides/configuration/) page covers all the environment variables — port, storage, upload limits, and more.
 
+Verify it is up with the unauthenticated health check:
+
+```sh
+curl -fsS http://localhost:3000/health
+```
+
 ## 2. Create an access token
 
 Nx needs a token with `readonly` or `full` permission to talk to the cache. Create a `full` token (read + write):
@@ -43,6 +49,7 @@ Run Nx as usual (`nx build`, `nx test`, etc.) and it will use the cache.
 
 ## Next steps
 
+- [Deploy](/deploy/docker/) — run it as a container, on Kubernetes, or as a standalone binary, with health checks and TLS.
 - [Why self-host?](/why/) — the case for running your own Nx remote cache instead of Nx Cloud.
 - [API Reference](/api/) — full HTTP API details, status codes, and request/response shapes.
 - [Configuration](/guides/configuration/) — all environment variables, S3 storage setup, and production tips.
