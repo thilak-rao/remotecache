@@ -1,0 +1,35 @@
+{{- if and .Values.persistence.data.enabled (not .Values.persistence.data.existingClaim) }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "remotecache.fullname" . }}-data
+  labels:
+    {{- include "remotecache.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.persistence.data.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.data.size | quote }}
+  {{- if .Values.persistence.data.storageClass }}
+  storageClassName: {{ .Values.persistence.data.storageClass | quote }}
+  {{- end }}
+{{- end }}
+{{- if and (eq .Values.storage.strategy "filesystem") .Values.persistence.cache.enabled (not .Values.persistence.cache.existingClaim) }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "remotecache.fullname" . }}-cache
+  labels:
+    {{- include "remotecache.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    {{- toYaml .Values.persistence.cache.accessModes | nindent 4 }}
+  resources:
+    requests:
+      storage: {{ .Values.persistence.cache.size | quote }}
+  {{- if .Values.persistence.cache.storageClass }}
+  storageClassName: {{ .Values.persistence.cache.storageClass | quote }}
+  {{- end }}
+{{- end }}
