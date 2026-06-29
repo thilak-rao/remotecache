@@ -16,8 +16,24 @@ bun install
 - `bun test` — run unit (`*.spec.ts`) and e2e (`e2e/*.e2e.spec.ts`) tests.
 - `bun run lint` — oxlint.
 - `bun run format` — oxfmt (rewrites files). CI runs `bun run format --check`, so format before pushing.
+- `bun audit` — audit root dependencies.
 
-Build the docs site from `docs-site/` with `bun install && bun run build`.
+Build and audit the docs site from `docs-site/`:
+
+```sh
+bun install --frozen-lockfile
+bun audit
+bun run build
+```
+
+Docker changes should also pass a local image smoke test:
+
+```sh
+docker build -t remotecache:ci .
+docker run -d --name remotecache-ci -e ADMIN_TOKEN=test-token -p 3000:3000 remotecache:ci
+curl -fsS http://127.0.0.1:3000/metrics
+docker rm -f remotecache-ci
+```
 
 ## Conventions
 
@@ -36,4 +52,4 @@ The release workflow needs a `RELEASE_PLEASE_TOKEN` repository secret. See the r
 
 ## Pull requests
 
-CI (format-check, lint, test) and CodeQL must pass. Keep PRs focused.
+CI must pass: format, lint, tests, audits, docs build, Docker smoke, Trivy filesystem scan, and CodeQL. Keep PRs focused.
