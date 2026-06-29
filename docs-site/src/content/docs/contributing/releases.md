@@ -32,11 +32,17 @@ The repository must also allow GitHub Actions to create pull requests.
 3. Review the release PR. Check the changelog and version bump.
 4. Merge the release PR when you want to cut a release.
 5. Confirm the GitHub Release and `vX.Y.Z` tag were created.
-6. Confirm distribution workflows published the expected Docker image and Helm chart artifacts.
+6. Confirm the Docker publishing workflow created the expected image tags. Helm chart publishing is planned for a later phase.
 
 ## Tag policy
 
 `latest` is reserved for the latest stable release. `edge` is reserved for the latest successful `main` build. Release tags publish `X.Y.Z` and `X.Y` image tags.
+
+## Docker publishing
+
+The Docker publishing workflow runs its own preflight gate before pushing images. It repeats the root checks, docs checks, Docker smoke test, and Trivy image scan so image publishing cannot race ahead of CI.
+
+Main builds publish `edge` and `sha-<short>`. Release tags publish `latest`, `X.Y.Z`, and `X.Y`. Release images are pushed for `linux/amd64` and `linux/arm64` with SBOM and provenance attestations.
 
 ## If a release does not appear
 
