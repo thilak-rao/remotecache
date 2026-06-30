@@ -36,6 +36,18 @@ describe('resolveS3Config', () => {
     expect(cfg.mode).toBe('chain');
   });
 
+  it('throws when only S3_ACCESS_KEY_ID is set', () => {
+    expect(() => resolveS3Config(asEnv({ S3_BUCKET: 'b', S3_ACCESS_KEY_ID: 'a' }))).toThrow(
+      /S3_ACCESS_KEY_ID.*S3_SECRET_ACCESS_KEY/,
+    );
+  });
+
+  it('throws when only S3_SECRET_ACCESS_KEY is set', () => {
+    expect(() => resolveS3Config(asEnv({ S3_BUCKET: 'b', S3_SECRET_ACCESS_KEY: 's' }))).toThrow(
+      /S3_ACCESS_KEY_ID.*S3_SECRET_ACCESS_KEY/,
+    );
+  });
+
   it('falls back to AWS_REGION when S3_REGION is unset', () => {
     const cfg = resolveS3Config(
       asEnv({

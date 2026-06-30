@@ -20,6 +20,11 @@ export type S3Resolved = {
  * when access key and secret are both absent, fall back to the AWS provider
  * chain (env, web identity / IRSA, ECS task role, EC2 IMDS). `region` accepts
  * `S3_REGION` or the AWS-standard `AWS_REGION`.
+ *
+ * @throws if `S3_BUCKET` is missing, or if exactly one of `S3_ACCESS_KEY_ID` /
+ * `S3_SECRET_ACCESS_KEY` is set — a partial static credential is rejected
+ * rather than silently falling back to the provider chain, which would start
+ * the server with unintended ambient credentials.
  */
 export function resolveS3Config(env: typeof Bun.env): S3Resolved {
   const bucket = env.S3_BUCKET;
@@ -40,6 +45,13 @@ export function resolveS3Config(env: typeof Bun.env): S3Resolved {
       mode: 'static',
       credentials: { accessKeyId, secretAccessKey, sessionToken: env.S3_SESSION_TOKEN },
     };
+  }
+
+  if (accessKeyId || secretAccessKey) {
+    throw new Error(
+      'S3 static credentials require both S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY. ' +
+        'Set both, or unset both to use the AWS provider chain.',
+    );
   }
 
   return { bucket, region, endpoint, mode: 'chain' };

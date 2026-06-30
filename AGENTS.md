@@ -15,7 +15,7 @@ This project runs on Bun and uses Bun's built-ins. Do not add Node-only equivale
 
 ## Commands
 
-- `bun run serve` — start the server. Requires `ADMIN_TOKEN`; it exits on startup without one. Optional: `BIND_ADDRESS` (default `0.0.0.0:3000`), `TLS_CERT_PATH`/`TLS_KEY_PATH` for direct TLS, `S3_SESSION_TOKEN`; S3 access key/secret are optional when the AWS provider chain (IRSA, ECS, IMDS) resolves credentials. The server drains in-flight requests on `SIGTERM`/`SIGINT`.
+- `bun run serve` — start the server. Requires `ADMIN_TOKEN`; it exits on startup without one. Optional: `PORT` (default `3000`), `BIND_ADDRESS` (listen interface only, default `0.0.0.0`), `TLS_CERT_PATH`/`TLS_KEY_PATH` for direct TLS, `S3_SESSION_TOKEN`; S3 access key/secret are optional when the AWS provider chain (IRSA, ECS, IMDS) resolves credentials. The server drains in-flight requests on `SIGTERM`/`SIGINT`.
 - `bun test` — run all colocated `*.spec.ts` and `e2e/*.e2e.spec.ts`. There is no test script; invoke `bun test` directly.
 - `bun run lint` — oxlint.
 - `bun run format` — oxfmt (rewrites files). The CI gate is `bun run format --check`, so format before committing.

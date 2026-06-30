@@ -4,7 +4,8 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/thilak-rao/remotecache
-  # tag defaults to the chart appVersion when empty.
+  # When empty, the tag defaults to the chart appVersion: the release version on
+  # a published chart, or `edge` on a source checkout. Set explicitly to pin one.
   tag: ''
   pullPolicy: IfNotPresent
 

@@ -76,6 +76,22 @@ const getTokenPermission = (headers: Headers): TokenPermission => {
   return tokenValue ? tokenStorage.findToken(tokenValue)?.permission : null;
 };
 
+// Track in-flight uploads so shutdown can drain them. Bun's `server.stop()`
+// closes active connections, so a graceful shutdown must wait for active
+// writes to finish *before* calling it — otherwise SIGTERM during a rolling
+// update aborts a cache write mid-stream.
+let activeUploads = 0;
+const drainWaiters = new Set<() => void>();
+const uploadFinished = () => {
+  activeUploads--;
+  if (activeUploads === 0) {
+    for (const resolve of drainWaiters) resolve();
+    drainWaiters.clear();
+  }
+};
+const waitForUploadsToDrain = (): Promise<void> =>
+  activeUploads === 0 ? Promise.resolve() : new Promise((resolve) => drainWaiters.add(resolve));
+
 export const server = Bun.serve({
   port: PORT,
   hostname: HOSTNAME,
@@ -97,20 +113,25 @@ export const server = Bun.serve({
         return response;
       },
       PUT: async ({ headers, params, body }) => {
-        const tokenPermission = getTokenPermission(headers);
-        const cacheFile = getCacheFile(params.hash);
-        const contentLength = headers.get('Content-Length') ?? '';
+        activeUploads++;
+        try {
+          const tokenPermission = getTokenPermission(headers);
+          const cacheFile = getCacheFile(params.hash);
+          const contentLength = headers.get('Content-Length') ?? '';
 
-        const response = await writeCache(
-          cacheFile,
-          tokenPermission,
-          body,
-          contentLength,
-          MAX_UPLOAD_BYTES,
-        );
-        const uploadedBytes = response.status === 200 ? Number(contentLength) || 0 : 0;
-        metrics.recordCacheRequest('PUT', response.status, uploadedBytes);
-        return response;
+          const response = await writeCache(
+            cacheFile,
+            tokenPermission,
+            body,
+            contentLength,
+            MAX_UPLOAD_BYTES,
+          );
+          const uploadedBytes = response.status === 200 ? Number(contentLength) || 0 : 0;
+          metrics.recordCacheRequest('PUT', response.status, uploadedBytes);
+          return response;
+        } finally {
+          uploadFinished();
+        }
       },
     },
     '/v1/admin/tokens/:token': {
@@ -142,16 +163,20 @@ export const server = Bun.serve({
 
 logger.info(`Server running at ${server.url}`);
 
-const shutdown = (signal: string) => {
-  logger.info(`Received ${signal}, draining connections`);
-  server
-    .stop()
-    .then(() => process.exit(0))
-    .catch((error) => {
-      logger.error(error instanceof Error ? error.message : String(error));
-      process.exit(1);
-    });
+const shutdown = async (signal: string) => {
+  logger.info(`Received ${signal}, draining ${activeUploads} in-flight upload(s)`);
+  try {
+    // Drain active uploads before stopping; `server.stop()` would otherwise
+    // close their connections. The orchestrator's termination grace period
+    // (e.g. Kubernetes `terminationGracePeriodSeconds`) bounds this wait.
+    await waitForUploadsToDrain();
+    await server.stop();
+    process.exit(0);
+  } catch (error) {
+    logger.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  }
 };
 
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));

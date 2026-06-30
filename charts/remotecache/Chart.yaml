@@ -2,9 +2,12 @@ apiVersion: v2
 name: remotecache
 description: Self-hosted Nx remote cache server on the Bun runtime
 type: application
-# version (chart) and appVersion are wired to release-please in roadmap Phase 6.
+# A source-checkout install (`helm install ./charts/remotecache`) defaults the
+# image tag to appVersion, so it must be a published tag — `edge` is built from
+# main. Published charts override it: publish-image.yml runs `helm package
+# --app-version "$VERSION"`, pinning the release tag (`:X.Y.Z`).
 version: 0.1.0
-appVersion: '0.0.0'
+appVersion: 'edge'
 home: https://remotecache.dev
 sources:
   - https://github.com/thilak-rao/remotecache

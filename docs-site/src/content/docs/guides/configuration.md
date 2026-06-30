@@ -40,6 +40,8 @@ For S3, set `STORAGE_STRATEGY=s3` and `S3_BUCKET`. Provide credentials one of tw
 - **Static keys:** set `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` (and `S3_SESSION_TOKEN` for temporary credentials).
 - **Ambient roles:** omit the keys. The server resolves credentials through the AWS provider chain — environment, EKS IRSA web identity, ECS task role, or EC2 instance profile — and refreshes them before they expire.
 
+Set the two static keys together or not at all: providing only one fails fast at startup rather than silently falling back to the provider chain.
+
 `S3_REGION` (or the AWS-standard `AWS_REGION`) sets the region. MinIO and other compatible providers also need `S3_ENDPOINT`. If you are moving from `@nx/s3-cache` (or another deprecated `@nx/*-cache` plugin), see [Migrate from @nx/s3-cache](/guides/migrate-from-nx-s3-cache/).
 
 `MAX_UPLOAD_BYTES` caps `PUT /v1/cache/:hash` uploads. Anything over the limit returns `413` before the body hits storage.
