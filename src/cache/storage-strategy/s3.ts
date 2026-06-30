@@ -27,6 +27,7 @@ export class S3Strategy implements CacheStorageStrategy {
   readonly #provider?: CredentialProvider;
   #client: Bun.S3Client | null = null;
   #expiration: number | null = null;
+  #refreshPromise: Promise<void> | null = null;
 
   constructor(options: S3StrategyOptions) {
     this.#bucket = options.bucket;
@@ -54,9 +55,18 @@ export class S3Strategy implements CacheStorageStrategy {
   async #getClient(): Promise<Bun.S3Client> {
     if (!this.#provider) return this.#client as Bun.S3Client;
     if (!this.#client || shouldRefreshCredentials(this.#expiration, Date.now())) {
-      const creds = await this.#provider();
-      this.#client = this.#build(creds);
-      this.#expiration = creds.expiration ? creds.expiration.getTime() : null;
+      // Coalesce concurrent refreshes so a credential-expiry window triggers a
+      // single provider (e.g. STS AssumeRole) call instead of one per in-flight
+      // request. The promise is cleared once settled so the next cycle refreshes.
+      this.#refreshPromise ??= this.#provider()
+        .then((creds) => {
+          this.#client = this.#build(creds);
+          this.#expiration = creds.expiration ? creds.expiration.getTime() : null;
+        })
+        .finally(() => {
+          this.#refreshPromise = null;
+        });
+      await this.#refreshPromise;
     }
     return this.#client as Bun.S3Client;
   }
