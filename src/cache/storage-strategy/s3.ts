@@ -85,8 +85,11 @@ export class S3Strategy implements CacheStorageStrategy {
       }
       await writer.end();
     } catch (error) {
+      // Pass the error to end() so Bun aborts the multipart upload instead of
+      // committing the flushed parts as a truncated object. Cache writes are
+      // append-only, so a corrupt entry would 409 every future write to this hash.
       try {
-        await writer.end();
+        await writer.end(error instanceof Error ? error : new Error(String(error)));
       } catch {}
       throw error;
     }
