@@ -5,6 +5,8 @@
 
 ### ⚠ BREAKING CHANGES
 
+* ADMIN_TOKEN must be at least 16 characters.
+* DELETE /v1/admin/tokens/{id} deletes by token id instead of token value.
 * the Helm chart rejects replicaCount > 1 because the token database and data/cache volumes are single-writer.
 
 ### Features
