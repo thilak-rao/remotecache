@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { baseEnv } from './spawn-server';
 
 const newHealthRequestGets200 = async (port: number): Promise<boolean> => {
   let responseText = '';
@@ -45,7 +46,7 @@ describe('graceful shutdown e2e', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rc-sigterm-'));
     const proc = Bun.spawn(['bun', 'src/main.ts'], {
       env: {
-        ...Bun.env,
+        ...baseEnv(),
         ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
         PORT: '4030',
         CACHE_DIR: join(dir, 'cache'),
@@ -81,7 +82,7 @@ describe('graceful shutdown e2e', () => {
     const hash = 'sigtermuploadhash01';
     const proc = Bun.spawn(['bun', 'src/main.ts'], {
       env: {
-        ...Bun.env,
+        ...baseEnv(),
         ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
         PORT: String(port),
         CACHE_DIR: join(dir, 'cache'),
@@ -168,7 +169,7 @@ describe('graceful shutdown e2e', () => {
     const port = 4032;
     const proc = Bun.spawn(['bun', 'src/main.ts'], {
       env: {
-        ...Bun.env,
+        ...baseEnv(),
         ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
         PORT: String(port),
         CACHE_DIR: join(dir, 'cache'),

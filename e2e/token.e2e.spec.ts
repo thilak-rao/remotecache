@@ -18,7 +18,7 @@ describe('token management e2e', () => {
   });
 
   afterAll(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('lists empty, adds token, lists with token, deletes, and lists empty again', async () => {

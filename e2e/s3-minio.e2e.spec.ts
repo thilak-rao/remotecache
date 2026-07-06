@@ -75,7 +75,7 @@ describe.skipIf(!ENDPOINT)('s3 storage e2e (MinIO)', () => {
   });
 
   afterAll(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('round-trips a large artifact intact', async () => {

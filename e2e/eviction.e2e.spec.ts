@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
-import { E2E_ADMIN_TOKEN, spawnServer, type SpawnedServer } from './spawn-server';
+import { E2E_ADMIN_TOKEN, metricValue, spawnServer, type SpawnedServer } from './spawn-server';
 
 const PORT = 4017;
 
@@ -14,7 +14,7 @@ describe('cache eviction e2e', () => {
   });
 
   afterAll(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   const put = (hash: string, bytes: number) =>
@@ -45,12 +45,12 @@ describe('cache eviction e2e', () => {
     let metricsText = '';
     for (let i = 0; i < 50; i++) {
       metricsText = await (await fetch(`${server.baseUrl}/metrics`)).text();
-      if (metricsText.includes('nx_cache_evicted_entries_total 1')) break;
+      if (metricValue(metricsText, 'nx_cache_evicted_entries_total') > 0) break;
       await Bun.sleep(100);
     }
-    expect(metricsText).toContain('nx_cache_evicted_entries_total 1');
-    expect(metricsText).toContain('nx_cache_evicted_bytes_total 1000');
-    expect(metricsText).toContain('nx_cache_size_bytes 2000');
+    expect(metricValue(metricsText, 'nx_cache_evicted_entries_total')).toBe(1);
+    expect(metricValue(metricsText, 'nx_cache_evicted_bytes_total')).toBe(1000);
+    expect(metricValue(metricsText, 'nx_cache_size_bytes')).toBe(2000);
 
     expect((await get('evictstale02')).status).toBe(404);
     expect((await get('evictolder01')).status).toBe(200);

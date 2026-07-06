@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { baseEnv } from './spawn-server';
 
 let dir: string;
 let baseUrl: string;
@@ -35,7 +36,7 @@ describe('tls e2e', () => {
 
     proc = Bun.spawn(['bun', 'src/main.ts'], {
       env: {
-        ...Bun.env,
+        ...baseEnv(),
         ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
         PORT: '4020',
         CACHE_DIR: join(dir, 'cache'),
