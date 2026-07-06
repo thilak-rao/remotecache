@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { randomUUID } from 'node:crypto';
-import { E2E_ADMIN_TOKEN, spawnServer, type SpawnedServer } from './spawn-server';
+import { E2E_ADMIN_TOKEN, metricValue, spawnServer, type SpawnedServer } from './spawn-server';
 
 let server: SpawnedServer;
 
@@ -12,18 +12,13 @@ const withAdmin = (path: string, init?: RequestInit) => {
   return fetch(`${server.baseUrl}${path}`, { ...init, headers });
 };
 
-function metricValue(text: string, series: string): number {
-  const line = text.split('\n').find((l) => l.startsWith(series));
-  return line ? Number(line.slice(series.length).trim()) : 0;
-}
-
 describe('metrics endpoint e2e', () => {
   beforeAll(async () => {
     server = await spawnServer(4011);
   });
 
   afterAll(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('counts hits, misses, stores, CREEP-blocked writes, and uploaded bytes', async () => {

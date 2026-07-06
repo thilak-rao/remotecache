@@ -9,7 +9,7 @@ describe('health endpoint e2e', () => {
   });
 
   afterAll(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('returns OK without authentication', async () => {

@@ -65,7 +65,7 @@ describe('cache concurrency e2e', () => {
   });
 
   afterAll(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('resolves two concurrent uploads of one hash to a single 200 and a 409', async () => {

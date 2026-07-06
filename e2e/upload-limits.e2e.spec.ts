@@ -12,7 +12,7 @@ describe('upload limits e2e', () => {
   });
 
   afterAll(async () => {
-    await server.stop();
+    await server?.stop();
   });
 
   it('accepts an upload between 128 MiB and MAX_UPLOAD_BYTES', async () => {

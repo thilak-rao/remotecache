@@ -2,13 +2,14 @@ import { describe, expect, it } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { baseEnv } from './spawn-server';
 
 describe('startup validation e2e', () => {
   it('refuses to start when ADMIN_TOKEN is shorter than 16 characters', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'rc-startup-'));
     const proc = Bun.spawn(['bun', 'src/main.ts'], {
       env: {
-        ...Bun.env,
+        ...baseEnv(),
         ADMIN_TOKEN: 'short',
         PORT: '4014',
         CACHE_DIR: join(dir, 'cache'),
@@ -30,7 +31,7 @@ describe('startup validation e2e', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rc-startup-storage-'));
     const proc = Bun.spawn(['bun', 'src/main.ts'], {
       env: {
-        ...Bun.env,
+        ...baseEnv(),
         ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
         PORT: '4014',
         STORAGE_STRATEGY: 'gcs',
@@ -53,7 +54,7 @@ describe('startup validation e2e', () => {
     const dir = mkdtempSync(join(tmpdir(), 'rc-startup-eviction-'));
     const proc = Bun.spawn(['bun', 'src/main.ts'], {
       env: {
-        ...Bun.env,
+        ...baseEnv(),
         ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
         PORT: '4014',
         STORAGE_STRATEGY: 's3',

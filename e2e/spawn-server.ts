@@ -11,6 +11,26 @@ export interface SpawnedServer {
 }
 
 /**
+ * OS plumbing only — deliberately no ambient remotecache config, so an
+ * exported `CACHE_MAX_BYTES` or `VERBOSE` on a developer machine can't leak
+ * into spawned servers. Use this instead of spreading `Bun.env`.
+ */
+export function baseEnv(): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const name of ['HOME', 'PATH', 'TMPDIR', 'TEMP', 'TMP']) {
+    const value = Bun.env[name];
+    if (value) env[name] = value;
+  }
+  return env;
+}
+
+/** Exact value of a Prometheus series line (name plus any labels), or 0 when absent. */
+export function metricValue(text: string, series: string): number {
+  const line = text.split('\n').find((l) => l.startsWith(series));
+  return line ? Number(line.slice(series.length).trim()) : 0;
+}
+
+/**
  * Starts `src/main.ts` in a child process with an isolated temp dir for the
  * cache and token DB. Each spec gets its own server and port, so specs never
  * share module state or depend on import order.
@@ -24,14 +44,9 @@ export async function spawnServer(
   // fill and stall the child, and stderr still lets us surface startup failures.
   const stderrPath = join(dir, 'stderr.log');
   const stdoutPath = join(dir, 'stdout.log');
-  const inheritedEnv: Record<string, string> = {};
-  for (const name of ['HOME', 'PATH', 'TMPDIR', 'TEMP', 'TMP']) {
-    const value = Bun.env[name];
-    if (value) inheritedEnv[name] = value;
-  }
   const proc = Bun.spawn(['bun', 'src/main.ts'], {
     env: {
-      ...inheritedEnv,
+      ...baseEnv(),
       ADMIN_TOKEN: E2E_ADMIN_TOKEN,
       PORT: String(port),
       CACHE_DIR: join(dir, 'cache'),
