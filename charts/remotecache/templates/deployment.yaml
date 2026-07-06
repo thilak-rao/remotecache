@@ -28,8 +28,11 @@
 {{- if gt (int .Values.replicaCount) 1 }}
 {{- fail "remotecache: replicaCount > 1 is not supported: the SQLite token store and data PVC are single-writer. Track multi-replica support in the project roadmap." }}
 {{- end }}
-{{- if and (ne .Values.storage.strategy "filesystem") (or .Values.config.cacheMaxBytes .Values.config.cacheTtlHours) }}
-{{- fail "remotecache: config.cacheMaxBytes/cacheTtlHours require storage.strategy=filesystem (use S3 lifecycle rules instead)" }}
+{{- if and (ne .Values.storage.strategy "filesystem") (or .Values.config.cacheMaxBytes .Values.config.cacheTtlHours .Values.config.sweepIntervalMs) }}
+{{- fail "remotecache: config.cacheMaxBytes/cacheTtlHours/sweepIntervalMs require storage.strategy=filesystem (use S3 lifecycle rules instead)" }}
+{{- end }}
+{{- if and .Values.ingress.enabled (not .Values.ingress.hosts) }}
+{{- fail "remotecache: ingress.enabled requires at least one entry in ingress.hosts" }}
 {{- end }}
 apiVersion: apps/v1
 kind: Deployment
