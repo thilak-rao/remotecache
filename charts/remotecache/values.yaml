@@ -101,6 +101,9 @@ metrics:
     interval: 30s
     additionalLabels: {}
 
+# With the chart's single-replica limit, minAvailable: 1 means voluntary
+# evictions can never proceed — `kubectl drain` will block until the PDB is
+# removed. Enable only if you prefer blocking drains over cache downtime.
 podDisruptionBudget:
   enabled: false
   minAvailable: 1
