@@ -270,6 +270,9 @@ jobs:
       - name: Upload release assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No checkout in this job: gh only resolves the repo from GH_REPO
+          # (it ignores GITHUB_REPOSITORY outside a git directory).
+          GH_REPO: ${{ github.repository }}
         run: |
           TAG="${GITHUB_REF_NAME}"
           VERSION="${TAG#v}"
