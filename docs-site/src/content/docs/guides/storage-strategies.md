@@ -19,7 +19,7 @@ Writes are atomic: each upload streams to a unique `${hash}.<uuid>.tmp` file and
 
 Set `STORAGE_STRATEGY=s3` and `S3_BUCKET` — the bucket is the only required S3 variable. `S3_REGION` (or the standard `AWS_REGION`) sets the region, and `S3_ENDPOINT` is needed only for MinIO or other S3-compatible providers. Provide credentials one of two ways.
 
-S3 writes use a conditional `PUT` (`If-None-Match: *`) so AWS S3, MinIO, and other providers that honor S3 conditional writes reject a second writer instead of overwriting an existing object. See [Security](/guides/security/#append-only-writes) for how this ties into the trust model.
+S3 writes use a conditional `PUT` (`If-None-Match: *`) so AWS S3, MinIO, and other providers that honor S3 conditional writes reject a second writer instead of overwriting an existing object. See [Security](/guides/security/#append-only-writes) for how this ties into the trust model. Conditional-write support is a hard requirement: backends without it (for example older MinIO releases or other partial S3 implementations) reject every upload with `501 Not Implemented`, which the server surfaces as a `500` and logs with the backend's error body.
 
 **Static keys.** Set `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` (and `S3_SESSION_TOKEN` for temporary STS credentials). When both keys are set, they take precedence over any ambient credentials. Set them together or not at all — providing only one fails fast at startup instead of silently falling back to the provider chain.
 

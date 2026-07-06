@@ -89,6 +89,9 @@ export class S3Strategy implements CacheStorageStrategy {
     contentLength: number,
   ): Promise<void> {
     const client = await this.#getClient();
+    // Single attempt, deliberately: the body is a one-shot stream, so a retry
+    // would have to buffer the whole upload, and Nx treats remote-cache
+    // failures as soft (the client falls back to a cache miss).
     const response = await fetch(client.presign(hash, { method: 'PUT' }), {
       method: 'PUT',
       headers: {
@@ -98,11 +101,20 @@ export class S3Strategy implements CacheStorageStrategy {
       body: stream,
     });
 
-    await response.body?.cancel();
-    if (response.ok) return;
+    if (response.ok) {
+      await response.body?.cancel();
+      return;
+    }
     if (response.status === 409 || response.status === 412) {
+      await response.body?.cancel();
       throw new CacheEntryExistsError(hash);
     }
-    throw new Error(`S3 write failed with HTTP ${response.status}`);
+    const detail = (await response.text().catch(() => '')).slice(0, 512);
+    if (response.status === 501) {
+      throw new Error(
+        `S3 write failed with HTTP 501: the backend does not support conditional writes (If-None-Match), which remotecache requires for append-only uploads. Use AWS S3 or another backend with S3 conditional-write support — see the storage-strategies guide. Backend response: ${detail}`,
+      );
+    }
+    throw new Error(`S3 write failed with HTTP ${response.status}: ${detail}`);
   }
 }
