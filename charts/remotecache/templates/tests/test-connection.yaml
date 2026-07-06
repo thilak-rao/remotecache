@@ -6,7 +6,10 @@ metadata:
     {{- include "remotecache.labels" . | nindent 4 }}
   annotations:
     helm.sh/hook: test
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    # No hook-succeeded: it deletes the pod before `helm test --logs` can read
+    # its output on the success path (helm/helm#9098). before-hook-creation
+    # still clears the previous run's pod on the next `helm test`.
+    helm.sh/hook-delete-policy: before-hook-creation
 spec:
   restartPolicy: Never
   containers:
