@@ -73,7 +73,14 @@
             }
           },
           "409": {
-            "description": "Cannot override an existing record"
+            "description": "Cannot override an existing record",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlainTextError"
+                }
+              }
+            }
           },
           "413": {
             "$ref": "#/components/responses/PayloadTooLarge"
