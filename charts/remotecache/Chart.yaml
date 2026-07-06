@@ -7,7 +7,7 @@ type: application
 # main. Published charts override it: publish-image.yml runs `helm package
 # --app-version "$VERSION"`, pinning the release tag (`:X.Y.Z`).
 # Kept in sync with the release version by release-please (x-release-please-version).
-version: 2.0.0 # x-release-please-version
+version: 2.1.0 # x-release-please-version
 appVersion: 'edge'
 home: https://remotecache.dev
 sources:
