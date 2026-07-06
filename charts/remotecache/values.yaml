@@ -2,6 +2,13 @@
 
 replicaCount: 1
 
+# Rolling updates deadlock with ReadWriteOnce PVCs: the replacement pod can't
+# attach a volume the old pod still holds. Recreate is the safe default; only
+# switch to RollingUpdate when no RWO PVC is mounted (e.g. S3 storage with
+# persistence.data disabled).
+deploymentStrategy:
+  type: Recreate
+
 image:
   repository: ghcr.io/thilak-rao/remotecache
   # When empty, the tag defaults to the chart appVersion: the release version on
@@ -26,6 +33,11 @@ config:
   bindAddress: '0.0.0.0'
   maxUploadBytes: 524288000
   verbose: false
+  # Opt-in filesystem cache eviction (filesystem strategy only). Leave unset
+  # for today's behavior: no eviction.
+  # cacheMaxBytes: 10737418240 # evict least-recently-used entries over this total
+  # cacheTtlHours: 720 # evict entries not accessed within this window
+  # sweepIntervalMs: 60000 # sweep period; only runs when a policy above is set
 
 storage:
   # "filesystem" (default) or "s3".
@@ -40,10 +52,12 @@ s3:
   endpoint: ''
   # Static credentials (optional). Leave empty to use the ServiceAccount's IAM
   # role (IRSA), an ECS task role, or an instance profile via the AWS chain.
+  # Use these inline values or existingSecret, not both.
   accessKeyId: ''
   secretAccessKey: ''
   sessionToken: ''
   # An existing Secret with keys: access-key-id, secret-access-key, [session-token].
+  # Use this or inline static credentials, not both.
   existingSecret: ''
 
 # Direct TLS (optional). Prefer ingress / reverse-proxy TLS for most setups.
@@ -80,6 +94,34 @@ service:
   type: ClusterIP
   port: 3000
 
+metrics:
+  serviceMonitor:
+    # Requires the Prometheus Operator CRDs (e.g. kube-prometheus-stack).
+    enabled: false
+    interval: 30s
+    additionalLabels: {}
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+ingress:
+  enabled: false
+  className: ''
+  # For large cache artifacts behind ingress-nginx, raise the body-size cap:
+  #   nginx.ingress.kubernetes.io/proxy-body-size: '0'
+  annotations: {}
+  # hosts:
+  #   - host: cache.example.com
+  #     paths:
+  #       - path: /
+  #         pathType: Prefix
+  hosts: []
+  # tls:
+  #   - secretName: cache-example-tls
+  #     hosts: [cache.example.com]
+  tls: []
+
 livenessProbe:
   enabled: true
   initialDelaySeconds: 5
@@ -94,7 +136,12 @@ extraEnv: []
 extraVolumes: []
 extraVolumeMounts: []
 
-resources: {}
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
 podAnnotations: {}
 podLabels: {}
 podSecurityContext:
@@ -103,7 +150,7 @@ podSecurityContext:
   fsGroup: 1000
 securityContext:
   allowPrivilegeEscalation: false
-  readOnlyRootFilesystem: false
+  readOnlyRootFilesystem: true
   capabilities:
     drop:
       - ALL

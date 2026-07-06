@@ -17,7 +17,7 @@ The five core functions:
 | `writeCache`  | Accept and persist an upload         |
 | `addToken`    | Create a new access token            |
 | `listTokens`  | Return all token IDs and permissions |
-| `deleteToken` | Remove a token by its value          |
+| `deleteToken` | Remove a token by id                 |
 
 Each takes its dependencies as parameters and returns a `Response`. That's what makes them unit-testable in isolation; the handlers have no logic of their own.
 

@@ -8,6 +8,13 @@ on:
   schedule:
     - cron: '23 5 * * 1'
 
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
 jobs:
   analyze:
     name: analyze

@@ -6,7 +6,8 @@ type: application
 # image tag to appVersion, so it must be a published tag — `edge` is built from
 # main. Published charts override it: publish-image.yml runs `helm package
 # --app-version "$VERSION"`, pinning the release tag (`:X.Y.Z`).
-version: 0.1.0
+# Kept in sync with the release version by release-please (x-release-please-version).
+version: 2.0.0 # x-release-please-version
 appVersion: 'edge'
 home: https://remotecache.dev
 sources:

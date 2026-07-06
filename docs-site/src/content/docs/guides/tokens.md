@@ -48,7 +48,9 @@ Request body:
 ### Delete a token
 
 ```
-DELETE /v1/admin/tokens/:token
+DELETE /v1/admin/tokens/:id
 ```
 
-Pass the raw token value (not the `id`) in the URL path. The server hashes it and looks it up internally.
+Pass the token's `id` (as returned by the list endpoint) in the URL path — never the token value.
+Deleting by id keeps secrets out of URLs and access logs, and means a token can always be revoked
+even after its value has been lost.

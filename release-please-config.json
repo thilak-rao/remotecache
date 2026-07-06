@@ -6,7 +6,13 @@
       "changelog-path": "CHANGELOG.md",
       "version-file": "version.txt",
       "include-component-in-tag": false,
-      "include-v-in-tag": true
+      "include-v-in-tag": true,
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "charts/remotecache/Chart.yaml"
+        }
+      ]
     }
   }
 }

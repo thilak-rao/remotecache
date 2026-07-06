@@ -1,33 +1,24 @@
-import { describe, expect, it, beforeAll, mock } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { randomUUID } from 'node:crypto';
-import { promises as fs } from 'node:fs';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { E2E_ADMIN_TOKEN, spawnServer, type SpawnedServer } from './spawn-server';
 
-let baseUrl: string;
-const adminToken = Bun.env.ADMIN_TOKEN ?? 'admin-token';
-
-mock.module('../src/logger', () => ({ logger: console }));
+let server: SpawnedServer;
 
 const requestWithAuth = (path: string, init?: RequestInit) => {
   const headers = new Headers(init?.headers);
   if (!headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${adminToken}`);
+    headers.set('Authorization', `Bearer ${E2E_ADMIN_TOKEN}`);
   }
-  return fetch(`${baseUrl}${path}`, { ...init, headers });
+  return fetch(`${server.baseUrl}${path}`, { ...init, headers });
 };
 
 describe('token management e2e', () => {
   beforeAll(async () => {
-    const tmpBase = join(tmpdir(), `nx-cache-e2e-${randomUUID()}`);
-    Bun.env.CACHE_DIR = tmpBase;
-    Bun.env.ADMIN_TOKEN = adminToken;
-    Bun.env.PORT = '4010';
+    server = await spawnServer(4012);
+  });
 
-    await fs.rm('nx-cache-server-tokens.sqlite', { force: true });
-
-    const { server } = await import('../src/main');
-    baseUrl = server.url.origin;
+  afterAll(async () => {
+    await server.stop();
   });
 
   it('lists empty, adds token, lists with token, deletes, and lists empty again', async () => {
@@ -41,10 +32,7 @@ describe('token management e2e', () => {
     const tokenId = `token-${randomUUID()}`;
     const addRes = await requestWithAuth('/v1/admin/tokens', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${adminToken}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: tokenId, permission: 'readonly' }),
     });
     expect(addRes.status).toBe(200);
@@ -53,8 +41,6 @@ describe('token management e2e', () => {
     expect(added.permission).toBe('readonly');
     expect(typeof added.value).toBe('string');
 
-    const tokenValue = added.value as string;
-
     // List returns id + permission only; the token value is never exposed
     const listAfterAdd = await requestWithAuth('/v1/admin/tokens');
     expect(listAfterAdd.status).toBe(200);
@@ -62,11 +48,17 @@ describe('token management e2e', () => {
     expect(afterAdd.tokens).toHaveLength(1);
     expect(afterAdd.tokens[0]).toEqual({ id: tokenId, permission: 'readonly' });
 
-    // Delete token using the real token value
-    const delRes = await requestWithAuth(`/v1/admin/tokens/${encodeURIComponent(tokenValue)}`, {
+    // Delete token by its id — the value is never needed (or wanted) in a URL
+    const delRes = await requestWithAuth(`/v1/admin/tokens/${encodeURIComponent(tokenId)}`, {
       method: 'DELETE',
     });
     expect(delRes.status).toBe(204);
+
+    // Deleting the same id again is a 404
+    const delAgain = await requestWithAuth(`/v1/admin/tokens/${encodeURIComponent(tokenId)}`, {
+      method: 'DELETE',
+    });
+    expect(delAgain.status).toBe(404);
 
     // List should be empty again
     const listAfterDelete = await requestWithAuth('/v1/admin/tokens');

@@ -11,7 +11,8 @@ Install dependencies and start the server with an admin token:
 
 ```sh
 bun install
-ADMIN_TOKEN="change-me" bun run serve
+export ADMIN_TOKEN="$(openssl rand -hex 32)"
+bun run serve
 ```
 
 Starts on `http://localhost:3000` by default. The [Configuration](/guides/configuration/) page covers all the environment variables — port, storage, upload limits, and more.
@@ -28,7 +29,7 @@ Nx needs a token with `readonly` or `full` permission to talk to the cache. Crea
 
 ```sh
 curl -sS -X POST \
-  -H "Authorization: Bearer change-me" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
   -H "Content-Type: application/json" \
   "http://localhost:3000/v1/admin/tokens" \
   -d '{"id":"CI","permission":"full"}'

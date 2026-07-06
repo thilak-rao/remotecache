@@ -20,7 +20,7 @@ Nx's official self-hosted cache went free, then paid ($250/seat/year Powerpack),
 - Nx remote cache endpoints
   - `GET /v1/cache/:hash` (download)
   - `PUT /v1/cache/:hash` (upload)
-- Prometheus metrics at `GET /metrics` (unauthenticated; cache hit-rate, request counts, uploaded bytes)
+- Prometheus metrics at `GET /metrics` (unauthenticated; cache hit-rate, request counts, uploaded bytes, eviction counters)
 - Health check at `GET /health` (unauthenticated; process liveness)
 - Token-based auth
   - **readonly** tokens can download
@@ -29,6 +29,7 @@ Nx's official self-hosted cache went free, then paid ($250/seat/year Powerpack),
 - Storage strategies
   - local filesystem (default)
   - S3-compatible storage (AWS S3, MinIO, etc.)
+- Opt-in filesystem cache eviction (`CACHE_MAX_BYTES` LRU size cap, `CACHE_TTL_HOURS` last-access TTL)
 - SQLite-backed token store
 - Direct TLS (`TLS_CERT_PATH` + `TLS_KEY_PATH`) or terminate TLS at your proxy/ingress
 - Helm chart for Kubernetes (`charts/remotecache/`)
@@ -37,14 +38,15 @@ Nx's official self-hosted cache went free, then paid ($250/seat/year Powerpack),
 
 ```sh
 bun install
-ADMIN_TOKEN="change-me" bun run serve
+export ADMIN_TOKEN="$(openssl rand -hex 32)"
+bun run serve
 ```
 
 The server starts on `http://localhost:3000`. Create a **full** token (can read/write cache):
 
 ```sh
 curl -sS -X POST \
-  -H "Authorization: Bearer change-me" \
+  -H "Authorization: Bearer ${ADMIN_TOKEN}" \
   -H "Content-Type: application/json" \
   "http://localhost:3000/v1/admin/tokens" \
   -d '{"id":"CI","permission":"full"}'
@@ -63,7 +65,7 @@ Set these environment variables wherever Nx runs (local dev, CI, etc.):
 
 ```sh
 docker run -p 3000:3000 \
-  -e ADMIN_TOKEN="change-me" \
+  -e ADMIN_TOKEN="$(openssl rand -hex 32)" \
   -v "$PWD/data:/app/data" \
   -v "$PWD/cache:/app/cache" \
   ghcr.io/thilak-rao/remotecache:latest

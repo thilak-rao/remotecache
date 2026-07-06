@@ -1,0 +1,16 @@
+adminToken: ci-admin-token-0123456789
+config:
+  cacheMaxBytes: 10737418240
+  cacheTtlHours: 720
+metrics:
+  serviceMonitor:
+    enabled: true
+podDisruptionBudget:
+  enabled: true
+ingress:
+  enabled: true
+  hosts:
+    - host: cache.example.com
+      paths:
+        - path: /
+          pathType: Prefix

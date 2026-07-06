@@ -44,13 +44,14 @@ describe('TokenStorage', () => {
     expect(readStoredValue(dbPath, 't1')).not.toBe('value-1');
   });
 
-  it('removes a token by its raw value', async () => {
+  it('removes a token by its id', async () => {
     const dbPath = await freshDbPath();
     const storage = new TokenStorage(dbPath);
-    storage.addToken({ id: 't1', value: 'value-1', permission: 'full' });
+    storage.addToken({ id: 't1', value: 'value-1', permission: 'readonly' });
 
-    expect(storage.removeToken('value-1')).toEqual({ result: true, error: null });
+    expect(storage.removeTokenById('t1')).toEqual({ result: true, error: null });
     expect(storage.findToken('value-1')).toBeNull();
+    expect(storage.removeTokenById('t1')).toEqual({ result: false, error: null });
   });
 
   it('lists tokens as id + permission only, without any value', async () => {

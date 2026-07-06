@@ -20,7 +20,7 @@ gh attestation verify remotecache-X.Y.Z-linux-x64 --repo thilak-rao/remotecache
 
 # run
 chmod +x remotecache-X.Y.Z-linux-x64
-ADMIN_TOKEN="change-me" ./remotecache-X.Y.Z-linux-x64
+ADMIN_TOKEN="$(openssl rand -hex 32)" ./remotecache-X.Y.Z-linux-x64
 ```
 
 The server reads the same [environment variables](/guides/configuration/) as the container; `ADMIN_TOKEN` is the only required one.

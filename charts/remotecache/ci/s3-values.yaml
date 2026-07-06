@@ -1,4 +1,4 @@
-adminToken: ci-admin-token
+adminToken: ci-admin-token-0123456789
 storage:
   strategy: s3
 s3:

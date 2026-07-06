@@ -3,13 +3,50 @@ import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+const newHealthRequestGets200 = async (port: number): Promise<boolean> => {
+  let responseText = '';
+  let resolveResponse!: (value: string) => void;
+  const responsePromise = new Promise<string>((resolve) => {
+    resolveResponse = resolve;
+  });
+
+  try {
+    const socket = await Bun.connect({
+      hostname: '127.0.0.1',
+      port,
+      socket: {
+        data(_s, data) {
+          responseText += new TextDecoder().decode(data);
+          if (responseText.includes('\r\n')) resolveResponse(responseText);
+        },
+        close() {
+          resolveResponse(responseText);
+        },
+        error() {
+          resolveResponse(responseText);
+        },
+      },
+    });
+    socket.write(
+      `GET /health HTTP/1.1\r\n` + `Host: 127.0.0.1:${port}\r\n` + `Connection: close\r\n\r\n`,
+    );
+    const response = await Promise.race([responsePromise, Bun.sleep(500).then(() => '')]);
+    try {
+      socket.end();
+    } catch {}
+    return response.startsWith('HTTP/1.1 200') || response.startsWith('HTTP/1.0 200');
+  } catch {
+    return false;
+  }
+};
+
 describe('graceful shutdown e2e', () => {
   it('drains and exits 0 on SIGTERM', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'rc-sigterm-'));
     const proc = Bun.spawn(['bun', 'src/main.ts'], {
       env: {
         ...Bun.env,
-        ADMIN_TOKEN: 'admin-token',
+        ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
         PORT: '4030',
         CACHE_DIR: join(dir, 'cache'),
         TOKENS_DB_PATH: join(dir, 'tokens.sqlite'),
@@ -45,7 +82,7 @@ describe('graceful shutdown e2e', () => {
     const proc = Bun.spawn(['bun', 'src/main.ts'], {
       env: {
         ...Bun.env,
-        ADMIN_TOKEN: 'admin-token',
+        ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
         PORT: String(port),
         CACHE_DIR: join(dir, 'cache'),
         TOKENS_DB_PATH: join(dir, 'tokens.sqlite'),
@@ -73,7 +110,7 @@ describe('graceful shutdown e2e', () => {
     const reqHead =
       `PUT /v1/cache/${hash} HTTP/1.1\r\n` +
       `Host: 127.0.0.1:${port}\r\n` +
-      `Authorization: Bearer admin-token\r\n` +
+      `Authorization: Bearer e2e-admin-token-0123456789abcdef\r\n` +
       `Content-Length: ${bodyBytes.length}\r\n` +
       `Connection: close\r\n\r\n`;
 
@@ -108,6 +145,9 @@ describe('graceful shutdown e2e', () => {
     await Bun.sleep(150);
     proc.kill('SIGTERM');
     await Bun.sleep(300);
+
+    expect(await newHealthRequestGets200(port)).toBe(false);
+
     socket.write(bodyBytes.slice(1000));
 
     const response = await Promise.race([
@@ -122,4 +162,61 @@ describe('graceful shutdown e2e', () => {
     expect(stored).toBe(true);
     expect(exitCode).toBe(0);
   });
+
+  it('exits after SHUTDOWN_DRAIN_TIMEOUT_MS when an upload stalls', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rc-sigterm-stall-'));
+    const port = 4032;
+    const proc = Bun.spawn(['bun', 'src/main.ts'], {
+      env: {
+        ...Bun.env,
+        ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
+        PORT: String(port),
+        CACHE_DIR: join(dir, 'cache'),
+        TOKENS_DB_PATH: join(dir, 'tokens.sqlite'),
+        SHUTDOWN_DRAIN_TIMEOUT_MS: '500',
+      },
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
+    let up = false;
+    for (let i = 0; i < 50; i++) {
+      try {
+        if ((await fetch(`http://127.0.0.1:${port}/health`)).ok) {
+          up = true;
+          break;
+        }
+      } catch {}
+      await Bun.sleep(100);
+    }
+    expect(up).toBe(true);
+
+    // Start an upload and never finish the body: without a deadline the drain
+    // would wait forever and SIGKILL (exit code ≠ 0) would be the only way out.
+    const socket = await Bun.connect({
+      hostname: '127.0.0.1',
+      port,
+      socket: { data() {}, close() {}, error() {} },
+    });
+    socket.write(
+      `PUT /v1/cache/stalleduploadhash1 HTTP/1.1\r\n` +
+        `Host: 127.0.0.1:${port}\r\n` +
+        `Authorization: Bearer e2e-admin-token-0123456789abcdef\r\n` +
+        `Content-Length: 2000\r\n` +
+        `Connection: close\r\n\r\n`,
+    );
+    socket.write('x'.repeat(100));
+    await Bun.sleep(150);
+
+    const started = performance.now();
+    proc.kill('SIGTERM');
+    const exitCode = await proc.exited;
+    const elapsed = performance.now() - started;
+    socket.end();
+    rmSync(dir, { recursive: true, force: true });
+
+    expect(exitCode).toBe(0);
+    expect(elapsed).toBeGreaterThanOrEqual(400);
+    expect(elapsed).toBeLessThan(5000);
+  }, 15000);
 });

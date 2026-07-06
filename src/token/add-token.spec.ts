@@ -25,7 +25,7 @@ describe('addToken', () => {
     const response = await addToken(true, storage, jsonBody);
 
     expect(response.status).toBe(400);
-    expect(await response.text()).toBe('Invalid JSONnull');
+    expect(await response.text()).toBe('Invalid JSON body');
     expect(storage.addToken).not.toHaveBeenCalled();
     expect(logger.error).toHaveBeenCalledWith(jsonBodyError);
   });
@@ -36,7 +36,7 @@ describe('addToken', () => {
     const response = await addToken(true, storage, jsonBody);
 
     expect(response.status).toBe(400);
-    expect(await response.text()).toBe('Invalid JSON"not-object"');
+    expect(await response.text()).toBe('Invalid JSON body');
     expect(storage.addToken).not.toHaveBeenCalled();
   });
 

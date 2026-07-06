@@ -1,23 +1,15 @@
-import { beforeAll, describe, expect, it, mock } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { randomUUID } from 'node:crypto';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { E2E_ADMIN_TOKEN, spawnServer, type SpawnedServer } from './spawn-server';
 
-let baseUrl: string;
-// Match token.e2e's defaults so the two specs share one server instance: bun
-// test shares a module registry, so whichever spec imports `../src/main` first
-// starts the server, and the other reuses it. Aligning the port + admin token
-// (and reading the exported server.url) keeps both order-independent.
-const adminToken = Bun.env.ADMIN_TOKEN ?? 'admin-token';
-
-mock.module('../src/logger', () => ({ logger: console }));
+let server: SpawnedServer;
 
 const randomHash = () => randomUUID().replace(/-/g, '');
 
 const withAdmin = (path: string, init?: RequestInit) => {
   const headers = new Headers(init?.headers);
-  headers.set('Authorization', `Bearer ${adminToken}`);
-  return fetch(`${baseUrl}${path}`, { ...init, headers });
+  headers.set('Authorization', `Bearer ${E2E_ADMIN_TOKEN}`);
+  return fetch(`${server.baseUrl}${path}`, { ...init, headers });
 };
 
 function metricValue(text: string, series: string): number {
@@ -27,12 +19,11 @@ function metricValue(text: string, series: string): number {
 
 describe('metrics endpoint e2e', () => {
   beforeAll(async () => {
-    Bun.env.ADMIN_TOKEN = adminToken;
-    Bun.env.CACHE_DIR = join(tmpdir(), `nx-cache-metrics-e2e-${randomUUID()}`);
-    Bun.env.PORT = '4010';
+    server = await spawnServer(4011);
+  });
 
-    const { server } = await import('../src/main');
-    baseUrl = server.url.origin;
+  afterAll(async () => {
+    await server.stop();
   });
 
   it('counts hits, misses, stores, CREEP-blocked writes, and uploaded bytes', async () => {
@@ -44,7 +35,7 @@ describe('metrics endpoint e2e', () => {
 
     // An unauthenticated write is rejected the same way a read-only (CREEP)
     // token is — both increment the PUT "forbidden" counter.
-    const blocked = await fetch(`${baseUrl}/v1/cache/${randomHash()}`, {
+    const blocked = await fetch(`${server.baseUrl}/v1/cache/${randomHash()}`, {
       method: 'PUT',
       headers: { 'Content-Length': '4' },
       body: 'evil',
@@ -61,7 +52,7 @@ describe('metrics endpoint e2e', () => {
     const hit = await withAdmin(`/v1/cache/${hash}`);
     expect(hit.status).toBe(200);
 
-    const res = await fetch(`${baseUrl}/metrics`);
+    const res = await fetch(`${server.baseUrl}/metrics`);
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Type')).toContain('text/plain');
     const text = await res.text();
