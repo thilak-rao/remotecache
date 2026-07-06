@@ -1,5 +1,5 @@
 import { S3Client, type S3Options } from 'bun';
-import { CacheStorageStrategy } from './storage-strategy.interface';
+import { CacheEntryExistsError, CacheStorageStrategy } from './storage-strategy.interface';
 
 type StaticCredentials = { accessKeyId: string; secretAccessKey: string; sessionToken?: string };
 type ResolvedCredentials = StaticCredentials & { expiration?: Date };
@@ -83,25 +83,26 @@ export class S3Strategy implements CacheStorageStrategy {
     return (await this.#getClient()).size(hash);
   }
 
-  async writeStream(hash: string, stream: ReadableStream<Uint8Array>): Promise<void> {
+  async writeStream(
+    hash: string,
+    stream: ReadableStream<Uint8Array>,
+    contentLength: number,
+  ): Promise<void> {
     const client = await this.#getClient();
-    const file = client.file(hash);
-    const writer = file.writer({ retry: 3, queueSize: 10, partSize: 5 * 1024 * 1024 });
+    const response = await fetch(client.presign(hash, { method: 'PUT' }), {
+      method: 'PUT',
+      headers: {
+        'Content-Length': String(contentLength),
+        'If-None-Match': '*',
+      },
+      body: stream,
+    });
 
-    try {
-      for await (const chunk of stream) {
-        writer.write(chunk);
-        await writer.flush();
-      }
-      await writer.end();
-    } catch (error) {
-      // Pass the error to end() so Bun aborts the multipart upload instead of
-      // committing the flushed parts as a truncated object. Cache writes are
-      // append-only, so a corrupt entry would 409 every future write to this hash.
-      try {
-        await writer.end(error instanceof Error ? error : new Error(String(error)));
-      } catch {}
-      throw error;
+    await response.body?.cancel();
+    if (response.ok) return;
+    if (response.status === 409 || response.status === 412) {
+      throw new CacheEntryExistsError(hash);
     }
+    throw new Error(`S3 write failed with HTTP ${response.status}`);
   }
 }

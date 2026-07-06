@@ -13,13 +13,22 @@ Token values are hashed with SHA-256 before they hit the database (`src/token/ha
 
 ## Input validation
 
-Cache hash parameters are validated before any storage access against `[A-Za-z0-9_-]`, 1–128 characters (`src/cache/is-valid-hash.ts`). All dots are rejected — not just `..` — meaning a hash can never collide with the filesystem strategy's `${hash}.tmp` write path or resolve to the cache directory or its parent. Anything outside that allowlist, or longer than 128 characters, returns `400`.
+Cache hash parameters are validated before any storage access against `[A-Za-z0-9_-]`, 1–128 characters (`src/cache/is-valid-hash.ts`). All dots are rejected — not just `..` — meaning a hash can never collide with the filesystem strategy's `${hash}.<uuid>.tmp` write path or resolve to the cache directory or its parent. Anything outside that allowlist, or longer than 128 characters, returns `400`.
 
 `PUT /v1/cache/:hash` requires a valid `Content-Length` header (a positive integer). Requests without one, or with a non-integer or non-positive value, return `400`.
 
 ## Append-only writes
 
-Once written, cache entries don't change. A `PUT` targeting an existing hash returns `409` without touching storage.
+Once written, cache entries don't change. A `PUT` targeting an existing hash returns `409` without
+touching storage. On the filesystem strategy this is enforced atomically: each upload streams to a
+unique temp file and commits with `link(2)`, which fails when the destination exists — so even two
+simultaneous uploads of the same hash resolve to exactly one intact, first-committed artifact and
+one `409`.
+
+The S3 strategy uses a conditional `PUT` with `If-None-Match: *`, so providers that implement S3
+conditional writes, including AWS S3 and MinIO, reject a concurrent second writer instead of
+overwriting the first committed object. The server maps that precondition failure to the same `409`
+response as the filesystem strategy.
 
 ## Trust boundaries: containing cache poisoning
 
@@ -33,8 +42,8 @@ This server's `readonly`/`full` token split is the primitive for containing that
 - Issue **`full`** tokens only to trusted pipelines — main branch, deploy jobs.
 - Issue **`readonly`** tokens to untrusted contexts — fork PRs, open-source contributor CI.
 
-`readonly` tokens are rejected at `PUT` with `403` (`src/cache/write-cache.ts`, line 41:
-`tokenPermission === 'full'` is the only path that can write). Untrusted runners can read the cache
+`readonly` tokens are rejected at `PUT` with `403`. In `src/cache/write-cache.ts`,
+`tokenPermission === 'full'` is the only path that can write. Untrusted runners can read the cache
 but cannot write to it, so they cannot place a poisoned artifact.
 
 :::caution[Honest limits]

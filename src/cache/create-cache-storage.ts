@@ -1,4 +1,6 @@
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import { accessSync, constants, linkSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { CacheStorageStrategy } from './storage-strategy/storage-strategy.interface';
 import { S3Strategy } from './storage-strategy/s3';
 import { FileSystemStrategy } from './storage-strategy/file-system';
@@ -57,6 +59,43 @@ export function resolveS3Config(env: typeof Bun.env): S3Resolved {
   return { bucket, region, endpoint, mode: 'chain' };
 }
 
+function assertWritableDir(dir: string): void {
+  try {
+    mkdirSync(dir, { recursive: true });
+    accessSync(dir, constants.W_OK | constants.X_OK);
+  } catch (error) {
+    throw new Error(
+      `CACHE_DIR "${dir}" is not writable: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  const probe = join(dir, `.remotecache-link-probe-${crypto.randomUUID()}`);
+  const probeLink = `${probe}.link`;
+  try {
+    writeFileSync(probe, '');
+    linkSync(probe, probeLink);
+  } catch (error) {
+    throw new Error(
+      `CACHE_DIR "${dir}" does not support atomic hard-link commits: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  } finally {
+    for (const path of [probeLink, probe]) {
+      try {
+        unlinkSync(path);
+      } catch {}
+    }
+  }
+}
+
+/**
+ * Build the configured storage backend. Fails fast instead of falling back:
+ * an unknown `STORAGE_STRATEGY` or an unwritable `CACHE_DIR` is a deployment
+ * mistake that should stop the server at boot, not surface as 500s at the
+ * first upload.
+ *
+ * @throws on unknown `STORAGE_STRATEGY`, unwritable `CACHE_DIR`, or invalid S3
+ * settings (see {@link resolveS3Config}).
+ */
 export function createCacheStorage(env: typeof Bun.env): CacheStorageStrategy {
   const kind = (env.STORAGE_STRATEGY ?? 'filesystem').toLowerCase();
   if (kind === 's3') {
@@ -70,6 +109,13 @@ export function createCacheStorage(env: typeof Bun.env): CacheStorageStrategy {
     });
   }
 
+  if (kind !== 'filesystem') {
+    throw new Error(
+      `Unknown STORAGE_STRATEGY "${env.STORAGE_STRATEGY}". Use "filesystem" or "s3".`,
+    );
+  }
+
   const cacheDir = env.CACHE_DIR ?? './cache';
+  assertWritableDir(cacheDir);
   return new FileSystemStrategy(cacheDir);
 }

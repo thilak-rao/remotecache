@@ -9,6 +9,7 @@ import {
 import { CacheFile } from './cache-file.interface';
 import { TokenPermission } from '../token/token-interfaces';
 import { logger } from '../logger';
+import { CacheEntryExistsError } from './storage-strategy/storage-strategy.interface';
 
 const validateContentLengthHeader = (headerContentLength: string) => {
   // Content-Length must be a non-negative decimal integer per the HTTP spec;
@@ -22,7 +23,7 @@ const validateContentLengthHeader = (headerContentLength: string) => {
 
 const toReadableStream = (
   body: ReadableStream<Uint8Array> | Blob | null,
-): ReadableStream<Uint8Array<ArrayBufferLike>> => {
+): ReadableStream<Uint8Array> | null => {
   if (body instanceof ReadableStream) return body;
   if (body instanceof Blob) return body.stream();
   return null;
@@ -97,9 +98,12 @@ export async function writeCache(
   });
 
   try {
-    await cacheFile.writeStream(countedStream);
+    await cacheFile.writeStream(countedStream, expectedLength);
     return okResponse({ message: null });
   } catch (error) {
+    if (error instanceof CacheEntryExistsError) {
+      return conflictError('Cannot override an existing record');
+    }
     if (
       error instanceof ContentLengthExceededError ||
       error instanceof ContentLengthMismatchError

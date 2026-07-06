@@ -1,16 +1,37 @@
 import { join } from 'node:path';
-import { CacheStorageStrategy } from './storage-strategy.interface';
-import { mkdir, rename, rm } from 'node:fs/promises';
+import { CacheEntryExistsError, CacheStorageStrategy } from './storage-strategy.interface';
+import { link, mkdir, rm, utimes } from 'node:fs/promises';
+import { existsSync, rmSync } from 'node:fs';
+import { logger } from '../../logger';
 
 export class FileSystemStrategy implements CacheStorageStrategy {
-  constructor(public readonly cacheDir: string) {}
+  constructor(public readonly cacheDir: string) {
+    this.sweepOrphanedTempFiles();
+  }
+
+  // A hard crash (SIGKILL, OOM, power loss) mid-upload leaves the
+  // `${hash}.<uuid>.tmp` write buffer behind, and nothing else ever removes it.
+  // Deployment is single-instance (the chart fail-guards replicaCount > 1), so
+  // sweeping leftovers at startup is safe and reclaims that space.
+  private sweepOrphanedTempFiles(): void {
+    if (!existsSync(this.cacheDir)) return;
+    try {
+      for (const name of new Bun.Glob('*.tmp').scanSync(this.cacheDir)) {
+        rmSync(join(this.cacheDir, name), { force: true });
+      }
+    } catch (error) {
+      logger.error(error);
+    }
+  }
 
   private getPath(hash: string) {
     return join(this.cacheDir, hash);
   }
 
   private getTempPath(hash: string) {
-    return join(this.cacheDir, `${hash}.tmp`);
+    // Unique per write: concurrent uploads of the same hash must never share
+    // a temp file, or their chunks interleave into a corrupt artifact.
+    return join(this.cacheDir, `${hash}.${crypto.randomUUID()}.tmp`);
   }
 
   async exists(hash: string): Promise<boolean> {
@@ -18,8 +39,13 @@ export class FileSystemStrategy implements CacheStorageStrategy {
   }
 
   async getStream(hash: string): Promise<ReadableStream> {
-    const file = Bun.file(this.getPath(hash));
-    return file.stream();
+    const path = this.getPath(hash);
+    // Eviction recency: mtime means "last accessed" (see src/cache/eviction.ts).
+    const now = new Date();
+    try {
+      await utimes(path, now, now);
+    } catch {}
+    return Bun.file(path).stream();
   }
 
   async getSize(hash: string): Promise<number> {
@@ -28,27 +54,48 @@ export class FileSystemStrategy implements CacheStorageStrategy {
     return file.size;
   }
 
-  async writeStream(hash: string, stream: ReadableStream<Uint8Array>): Promise<void> {
+  async writeStream(
+    hash: string,
+    stream: ReadableStream<Uint8Array>,
+    _contentLength: number,
+  ): Promise<void> {
     await mkdir(this.cacheDir, { recursive: true });
 
     const finalPath = this.getPath(hash);
     const tempPath = this.getTempPath(hash);
-
     const writer = Bun.file(tempPath).writer();
-    try {
-      for await (const chunk of stream) {
-        writer.write(chunk);
-      }
-      await writer.end();
-      await rename(tempPath, finalPath);
-    } catch (error) {
+
+    const closeWriter = async () => {
       try {
         await writer.end();
       } catch {}
+    };
+
+    try {
+      try {
+        for await (const chunk of stream) {
+          await writer.write(chunk);
+        }
+        await writer.end();
+      } catch (error) {
+        await closeWriter();
+        throw error;
+      }
+
+      // rename() silently replaces an existing destination, so two concurrent
+      // writers of one hash would be last-writer-wins. link() fails with EEXIST
+      // instead, making first-writer-wins an atomic invariant; the losing writer
+      // surfaces as a 409.
+      await link(tempPath, finalPath);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
+        throw new CacheEntryExistsError(hash);
+      }
+      throw error;
+    } finally {
       try {
         await rm(tempPath, { force: true });
       } catch {}
-      throw error;
     }
   }
 }

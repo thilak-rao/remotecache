@@ -1,11 +1,35 @@
 {{- if and (not .Values.adminToken) (not .Values.existingSecret) }}
 {{- fail "remotecache: set either .Values.adminToken or .Values.existingSecret" }}
 {{- end }}
+{{- if and .Values.adminToken .Values.existingSecret }}
+{{- fail "remotecache: set only one of .Values.adminToken or .Values.existingSecret" }}
+{{- end }}
+{{- if and .Values.adminToken (lt (len (toString .Values.adminToken)) 16) }}
+{{- fail "remotecache: adminToken must be at least 16 characters" }}
+{{- end }}
+{{- if not (or (eq .Values.storage.strategy "filesystem") (eq .Values.storage.strategy "s3")) }}
+{{- fail "remotecache: storage.strategy must be either filesystem or s3" }}
+{{- end }}
 {{- if and (eq .Values.storage.strategy "s3") (not .Values.s3.bucket) }}
 {{- fail "remotecache: storage.strategy=s3 requires s3.bucket" }}
 {{- end }}
+{{- if and .Values.s3.existingSecret (or .Values.s3.accessKeyId .Values.s3.secretAccessKey .Values.s3.sessionToken) }}
+{{- fail "remotecache: set only one of s3.existingSecret or inline S3 credentials" }}
+{{- end }}
+{{- if and (eq .Values.storage.strategy "s3") (not .Values.s3.existingSecret) (ne (not .Values.s3.accessKeyId) (not .Values.s3.secretAccessKey)) }}
+{{- fail "remotecache: s3.accessKeyId and s3.secretAccessKey must be set together, or both omitted for ambient credentials" }}
+{{- end }}
+{{- if and (eq .Values.storage.strategy "s3") (not .Values.s3.existingSecret) .Values.s3.sessionToken (not (and .Values.s3.accessKeyId .Values.s3.secretAccessKey)) }}
+{{- fail "remotecache: s3.sessionToken requires s3.accessKeyId and s3.secretAccessKey" }}
+{{- end }}
 {{- if and .Values.tls.enabled (not .Values.tls.existingSecret) }}
 {{- fail "remotecache: tls.enabled requires tls.existingSecret (a kubernetes.io/tls Secret)" }}
+{{- end }}
+{{- if gt (int .Values.replicaCount) 1 }}
+{{- fail "remotecache: replicaCount > 1 is not supported: the SQLite token store and data PVC are single-writer. Track multi-replica support in the project roadmap." }}
+{{- end }}
+{{- if and (ne .Values.storage.strategy "filesystem") (or .Values.config.cacheMaxBytes .Values.config.cacheTtlHours) }}
+{{- fail "remotecache: config.cacheMaxBytes/cacheTtlHours require storage.strategy=filesystem (use S3 lifecycle rules instead)" }}
 {{- end }}
 apiVersion: apps/v1
 kind: Deployment
@@ -15,6 +39,8 @@ metadata:
     {{- include "remotecache.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  strategy:
+    {{- toYaml .Values.deploymentStrategy | nindent 4 }}
   selector:
     matchLabels:
       {{- include "remotecache.selectorLabels" . | nindent 6 }}
@@ -70,6 +96,18 @@ spec:
             {{- if eq .Values.storage.strategy "filesystem" }}
             - name: CACHE_DIR
               value: {{ .Values.storage.filesystem.cacheDir | quote }}
+            {{- with .Values.config.cacheMaxBytes }}
+            - name: CACHE_MAX_BYTES
+              value: {{ . | int64 | quote }}
+            {{- end }}
+            {{- with .Values.config.cacheTtlHours }}
+            - name: CACHE_TTL_HOURS
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.config.sweepIntervalMs }}
+            - name: CACHE_SWEEP_INTERVAL_MS
+              value: {{ . | quote }}
+            {{- end }}
             {{- end }}
             {{- if eq .Values.storage.strategy "s3" }}
             - name: S3_BUCKET
@@ -82,7 +120,7 @@ spec:
             - name: S3_ENDPOINT
               value: {{ .Values.s3.endpoint | quote }}
             {{- end }}
-            {{- if or .Values.s3.existingSecret .Values.s3.accessKeyId }}
+            {{- if or .Values.s3.existingSecret (and .Values.s3.accessKeyId .Values.s3.secretAccessKey) }}
             - name: S3_ACCESS_KEY_ID
               valueFrom:
                 secretKeyRef:
@@ -131,6 +169,9 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
+            # Bun and SQLite need a writable /tmp once the root FS is read-only.
+            - name: tmp
+              mountPath: /tmp
             - name: data
               mountPath: {{ dir .Values.storage.tokensDbPath }}
             {{- if eq .Values.storage.strategy "filesystem" }}
@@ -146,6 +187,8 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
       volumes:
+        - name: tmp
+          emptyDir: {}
         - name: data
           {{- if .Values.persistence.data.enabled }}
           persistentVolumeClaim:

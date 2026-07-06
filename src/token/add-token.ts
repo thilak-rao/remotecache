@@ -45,7 +45,7 @@ export async function addToken(
 
   const body = await parseJsonSafe(jsonBody);
   if (!body || typeof body !== 'object') {
-    return badRequest('Invalid JSON' + JSON.stringify(body));
+    return badRequest('Invalid JSON body');
   }
 
   const { id, permission } = body as { id?: unknown; permission?: unknown };

@@ -1,3 +1,12 @@
 {
-  "compilerOptions": { "module": "esnext", "target": "esnext" }
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "types": ["bun"],
+    "skipLibCheck": true
+  },
+  "include": ["src", "e2e"]
 }

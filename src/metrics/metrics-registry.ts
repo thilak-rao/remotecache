@@ -1,3 +1,5 @@
+import type { SweepResult } from '../cache/eviction';
+
 export type CacheMethod = 'GET' | 'PUT';
 
 // Results seeded to 0 so rate()/ratio panels are well-defined before the first
@@ -38,6 +40,9 @@ const seriesKey = (method: CacheMethod, result: string): string => `${method}|${
 export class MetricsRegistry {
   private readonly requests = new Map<string, number>();
   private uploadedBytes = 0;
+  private evictedEntries = 0;
+  private evictedBytes = 0;
+  private cacheSizeBytes = 0;
 
   constructor() {
     for (const method of ['GET', 'PUT'] as const) {
@@ -59,6 +64,13 @@ export class MetricsRegistry {
     }
   }
 
+  /** Record an eviction sweep. Counters accumulate; the gauge is the latest sweep's total. */
+  recordSweep(result: SweepResult): void {
+    this.evictedEntries += result.evictedEntries;
+    this.evictedBytes += result.evictedBytes;
+    this.cacheSizeBytes = result.totalBytes;
+  }
+
   /** Render the Prometheus text exposition format (version 0.0.4). */
   render(): string {
     const lines: string[] = [
@@ -77,6 +89,18 @@ export class MetricsRegistry {
       '# HELP nx_cache_uploaded_bytes_total Total bytes accepted by successful cache uploads.',
       '# TYPE nx_cache_uploaded_bytes_total counter',
       `nx_cache_uploaded_bytes_total ${this.uploadedBytes}`,
+    );
+
+    lines.push(
+      '# HELP nx_cache_evicted_entries_total Cache entries deleted by the eviction sweeper.',
+      '# TYPE nx_cache_evicted_entries_total counter',
+      `nx_cache_evicted_entries_total ${this.evictedEntries}`,
+      '# HELP nx_cache_evicted_bytes_total Bytes reclaimed by the eviction sweeper.',
+      '# TYPE nx_cache_evicted_bytes_total counter',
+      `nx_cache_evicted_bytes_total ${this.evictedBytes}`,
+      '# HELP nx_cache_size_bytes Committed cache size in bytes as of the last eviction sweep.',
+      '# TYPE nx_cache_size_bytes gauge',
+      `nx_cache_size_bytes ${this.cacheSizeBytes}`,
     );
 
     return `${lines.join('\n')}\n`;

@@ -30,7 +30,7 @@ Docker changes should also pass a local image smoke test:
 
 ```sh
 docker build -t remotecache:ci .
-docker run -d --name remotecache-ci -e ADMIN_TOKEN=test-token -p 3000:3000 remotecache:ci
+docker run -d --name remotecache-ci -e ADMIN_TOKEN=ci-smoke-admin-token-0123456789 -p 3000:3000 remotecache:ci
 curl -fsS http://127.0.0.1:3000/health
 docker rm -f remotecache-ci
 ```
@@ -38,10 +38,11 @@ docker rm -f remotecache-ci
 Chart changes should pass lint and template rendering:
 
 ```sh
-helm lint charts/remotecache --set adminToken=ci-admin-token
+helm lint charts/remotecache --set adminToken=ci-admin-token-0123456789
 helm template rc charts/remotecache -f charts/remotecache/ci/filesystem-values.yaml
 helm template rc charts/remotecache -f charts/remotecache/ci/s3-values.yaml
 helm template rc charts/remotecache -f charts/remotecache/ci/tls-values.yaml
+helm template rc charts/remotecache -f charts/remotecache/ci/extras-values.yaml
 ```
 
 ## Conventions
@@ -57,8 +58,8 @@ Release Please manages changelogs, version bumps, GitHub Releases, and SemVer ta
 
 Normal contributor PRs should use Conventional Commits. After changes land on `main`, Release Please opens or updates a release PR. A maintainer reviews and merges that release PR when it is time to publish.
 
-The release workflow needs a `RELEASE_PLEASE_TOKEN` repository secret. See the release guide in the docs site for token permissions and troubleshooting.
+The release workflow mints a GitHub App installation token from `RELEASE_PLEASE_APP_ID` and `RELEASE_PLEASE_APP_PRIVATE_KEY` repository secrets. The app needs contents, issues, and pull request write access so Release Please can open and update the release PR.
 
 ## Pull requests
 
-CI must pass: format, lint, tests, audits, docs build, Docker smoke, Helm lint/template, Trivy filesystem scan, and CodeQL. Keep PRs focused.
+CI must pass: format, lint, typecheck, tests, audits, docs build, Docker smoke, Helm lint/template (including extras), kubeconform, kind install plus `helm test`, S3 MinIO e2e, Trivy filesystem scan, and CodeQL. Keep PRs focused.

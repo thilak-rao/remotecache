@@ -8,20 +8,20 @@ Releases are managed by Release Please. It reads Conventional Commits on `main`,
 - `CHANGELOG.md`
 - `version.txt`
 - `.release-please-manifest.json`
+- `charts/remotecache/Chart.yaml` (chart version)
 
 Merging the release PR creates the GitHub Release and a SemVer tag such as `v2.1.0`.
 
 ## Maintainer setup
 
-The release workflow uses a repository secret named `RELEASE_PLEASE_TOKEN`.
+The release workflow authenticates as a GitHub App (`remotecache-release`) via
+`actions/create-github-app-token`, using the `RELEASE_PLEASE_APP_ID` and
+`RELEASE_PLEASE_APP_PRIVATE_KEY` repository secrets. The app needs Contents,
+Pull requests, and Issues read/write on this repository only.
 
-Use a least-privilege fine-grained PAT or GitHub App token that can:
-
-- read and write repository contents
-- create pull requests
-- create issues or comments
-
-Do not use the default `GITHUB_TOKEN` for Release Please. GitHub suppresses follow-on workflow runs for events created by `GITHUB_TOKEN`, which means release PRs and tags may not trigger the normal CI and publishing workflows.
+Do not use the default `GITHUB_TOKEN` for Release Please. GitHub suppresses follow-on workflow runs
+for events created by `GITHUB_TOKEN`, which means release PRs and tags may not trigger the normal
+CI and publishing workflows.
 
 The repository must also allow GitHub Actions to create pull requests.
 
@@ -40,7 +40,7 @@ The repository must also allow GitHub Actions to create pull requests.
 
 ## Publishing
 
-PR CI runs `helm lint` and `helm template` against the chart in `charts/remotecache/` (filesystem, S3, and TLS value sets). On release tags the workflow also publishes the chart as an OCI artifact to `oci://ghcr.io/thilak-rao/charts/remotecache` and attaches standalone binaries plus a `checksums.txt` to the Release. The chart, image, and binaries each carry a provenance attestation; consumers verify with `gh attestation verify`.
+PR CI runs `helm lint`, `helm template` (filesystem, S3, and TLS value sets), kubeconform schema validation, and a full `helm install` + `helm test` against a kind cluster for the chart in `charts/remotecache/`. On release tags the workflow also publishes the chart as an OCI artifact to `oci://ghcr.io/thilak-rao/charts/remotecache` and attaches standalone binaries plus a `checksums.txt` to the Release. Each release also carries a source SBOM (sbom.spdx.json, SPDX format), listed in checksums.txt. The chart, image, and binaries each carry a provenance attestation; consumers verify with `gh attestation verify`. Before upload, every binary is smoke-tested against `/health` on a native runner for its platform (linux x64/arm64, macOS x64/arm64, Windows x64).
 
 The Docker publishing workflow runs its own preflight gate before pushing images. It repeats the root checks, docs checks, Docker smoke test against `/health`, and Trivy image scan so image publishing cannot race ahead of CI.
 
@@ -52,6 +52,6 @@ Check these in order:
 
 1. The merged commits use Conventional Commit types such as `fix:` or `feat:`.
 2. `.github/workflows/release.yml` ran on the latest push to `main`.
-3. `RELEASE_PLEASE_TOKEN` exists and has write access.
+3. `RELEASE_PLEASE_APP_ID` and `RELEASE_PLEASE_APP_PRIVATE_KEY` exist and the app has write access.
 4. GitHub Actions is allowed to create pull requests.
 5. The release PR was merged, not just opened.

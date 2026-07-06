@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { resolveS3Config } from './create-cache-storage';
+import { chmodSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createCacheStorage, resolveS3Config } from './create-cache-storage';
 
 const asEnv = (o: Record<string, string>) => o as unknown as typeof Bun.env;
 
@@ -58,5 +61,26 @@ describe('resolveS3Config', () => {
       }),
     );
     expect(cfg.region).toBe('us-west-2');
+  });
+});
+
+describe('createCacheStorage', () => {
+  it('throws on an unknown STORAGE_STRATEGY', () => {
+    expect(() => createCacheStorage(asEnv({ STORAGE_STRATEGY: 'gcs' }))).toThrow(
+      /Unknown STORAGE_STRATEGY "gcs"/,
+    );
+  });
+
+  it('throws when CACHE_DIR cannot be created or written', () => {
+    const base = mkdtempSync(join(tmpdir(), 'rc-config-'));
+    chmodSync(base, 0o500);
+    try {
+      expect(() => createCacheStorage(asEnv({ CACHE_DIR: join(base, 'cache') }))).toThrow(
+        /not writable/,
+      );
+    } finally {
+      chmodSync(base, 0o700);
+      rmSync(base, { recursive: true, force: true });
+    }
   });
 });

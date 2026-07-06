@@ -11,6 +11,9 @@ export type DatabaseOperation<DatabaseError> =
 
 type UnknownError = 'unknownError';
 type AddTokenError = 'tokenIdAlreadyExists' | 'tokenValueAlreadyExists' | UnknownError;
+type DeleteTokenOperation =
+  | { result: true; error: null }
+  | { result: false; error: UnknownError | null };
 
 // Bumped whenever the on-disk token format changes. Version 1 means the `value`
 // column holds a SHA-256 hash of the token rather than its plaintext.
@@ -90,11 +93,11 @@ export class TokenStorage {
     }
   }
 
-  removeToken(value: string): DatabaseOperation<UnknownError> {
-    const deleteStatement = this.#db.query('DELETE FROM tokens WHERE value = $value');
+  removeTokenById(id: string): DeleteTokenOperation {
+    const deleteStatement = this.#db.query('DELETE FROM tokens WHERE id = $id');
 
     try {
-      const deleted = deleteStatement.run({ value: hashToken(value) });
+      const deleted = deleteStatement.run({ id });
       return { result: deleted.changes > 0, error: null };
     } catch (error) {
       logger.error(error);

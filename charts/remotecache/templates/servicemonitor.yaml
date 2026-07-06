@@ -1,0 +1,24 @@
+{{- if .Values.metrics.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "remotecache.fullname" . }}
+  labels:
+    {{- include "remotecache.labels" . | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "remotecache.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      scheme: {{ if .Values.tls.enabled }}https{{ else }}http{{ end }}
+      {{- if .Values.tls.enabled }}
+      tlsConfig:
+        insecureSkipVerify: true
+      {{- end }}
+{{- end }}

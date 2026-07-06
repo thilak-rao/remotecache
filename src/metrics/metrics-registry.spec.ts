@@ -69,4 +69,35 @@ describe('MetricsRegistry', () => {
 
     expect(registry.render()).toContain('nx_cache_requests_total{method="GET",result="other"} 1');
   });
+
+  it('renders eviction counters and the cache size gauge', () => {
+    const registry = new MetricsRegistry();
+    registry.recordSweep({
+      scannedEntries: 5,
+      totalBytes: 500,
+      evictedEntries: 2,
+      evictedBytes: 300,
+    });
+    registry.recordSweep({
+      scannedEntries: 4,
+      totalBytes: 400,
+      evictedEntries: 1,
+      evictedBytes: 100,
+    });
+
+    const text = registry.render();
+
+    expect(text).toContain('nx_cache_evicted_entries_total 3');
+    expect(text).toContain('nx_cache_evicted_bytes_total 400');
+    // Gauge, not counter: the latest sweep wins.
+    expect(text).toContain('nx_cache_size_bytes 400');
+    expect(text).toContain('# TYPE nx_cache_size_bytes gauge');
+  });
+
+  it('seeds eviction metrics at zero before any sweep', () => {
+    const text = new MetricsRegistry().render();
+    expect(text).toContain('nx_cache_evicted_entries_total 0');
+    expect(text).toContain('nx_cache_evicted_bytes_total 0');
+    expect(text).toContain('nx_cache_size_bytes 0');
+  });
 });

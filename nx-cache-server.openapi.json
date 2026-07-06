@@ -28,7 +28,7 @@
     },
     "/metrics": {
       "get": {
-        "description": "Prometheus metrics in the text exposition format (version 0.0.4). Unauthenticated and meant to be scraped over a private network; restrict it to your metrics collector and never expose it publicly. Reports cache request counters by method and result (the GET hit/miss split is the cache hit-rate, and PUT 'forbidden' counts read-only tokens rejected from writing) plus total bytes accepted by successful uploads.",
+        "description": "Prometheus metrics in the text exposition format (version 0.0.4). Unauthenticated and meant to be scraped over a private network; restrict it to your metrics collector and never expose it publicly. Reports cache request counters by method and result (the GET hit/miss split is the cache hit-rate, and PUT 'forbidden' counts read-only tokens rejected from writing), total bytes accepted by successful uploads, filesystem eviction counters (nx_cache_evicted_entries_total and nx_cache_evicted_bytes_total), and the latest filesystem cache size gauge (nx_cache_size_bytes).",
         "operationId": "getMetrics",
         "security": [],
         "responses": {
@@ -77,6 +77,9 @@
           },
           "413": {
             "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         },
         "parameters": [
@@ -148,6 +151,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         },
         "parameters": [
@@ -225,13 +231,16 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
     },
-    "/v1/admin/tokens/{token}": {
+    "/v1/admin/tokens/{id}": {
       "delete": {
-        "description": "Delete a token by its exact value. Requires the ADMIN_TOKEN bearer token.",
+        "description": "Delete a token by its id. Requires the ADMIN_TOKEN bearer token. Deleting by id (never by value) keeps token values out of URLs and access logs, and lets an admin revoke a token whose value has been lost.",
         "operationId": "adminDeleteToken",
         "security": [
           {
@@ -240,10 +249,10 @@
         ],
         "parameters": [
           {
-            "name": "token",
+            "name": "id",
             "in": "path",
             "required": true,
-            "description": "The token value to delete (must match exactly).",
+            "description": "The id of the token to delete, as returned by the list endpoint.",
             "schema": {
               "type": "string"
             }
@@ -268,6 +277,9 @@
                 }
               }
             }
+          },
+          "500": {
+            "$ref": "#/components/responses/InternalServerError"
           }
         }
       }
@@ -369,6 +381,16 @@
       },
       "Conflict": {
         "description": "Conflict — the token id or value already exists",
+        "content": {
+          "text/plain": {
+            "schema": {
+              "$ref": "#/components/schemas/PlainTextError"
+            }
+          }
+        }
+      },
+      "InternalServerError": {
+        "description": "Unexpected server-side failure (storage or database error). The body is a plain-text error message.",
         "content": {
           "text/plain": {
             "schema": {

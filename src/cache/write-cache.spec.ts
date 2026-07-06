@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from 'bun:test';
 import { writeCache } from './write-cache';
 import { CacheFile } from './cache-file.interface';
+import { CacheEntryExistsError } from './storage-strategy/storage-strategy.interface';
 
 const logger = { error: mock() };
 mock.module('../logger', () => ({ logger }));
@@ -183,6 +184,7 @@ describe('writeCache', () => {
 
     expect(cacheFile.exists).toHaveBeenCalled();
     expect(cacheFile.writeStream).toHaveBeenCalled();
+    expect(cacheFile.writeStream.mock.calls[0]?.[1]).toBe(9);
     expect(response.status).toBe(200);
     expect(await response.text()).toBe('');
   });
@@ -201,5 +203,17 @@ describe('writeCache', () => {
     expect(response.status).toBe(500);
     expect(await response.text()).toBe('Failed to write to cache');
     expect(logger.error).toHaveBeenCalledWith(diskFullError);
+  });
+
+  it('returns 409 when the storage commit loses a first-writer race', async () => {
+    const cacheFile = makeCacheFile();
+    cacheFile.exists.mockResolvedValue(false);
+    cacheFile.writeStream.mockRejectedValue(new CacheEntryExistsError('racehash'));
+
+    const body = createStream('data');
+    const response = await writeCache(cacheFile, 'full', body, '4', maxUploadBytes);
+
+    expect(response.status).toBe(409);
+    expect(await response.text()).toBe('Cannot override an existing record');
   });
 });
