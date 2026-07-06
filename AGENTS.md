@@ -15,9 +15,10 @@ This project runs on Bun and uses Bun's built-ins. Do not add Node-only equivale
 
 ## Commands
 
-- `bun run serve` — start the server. Requires `ADMIN_TOKEN`; it exits on startup without one. Optional: `PORT` (default `3000`), `BIND_ADDRESS` (listen interface only, default `0.0.0.0`), `TLS_CERT_PATH`/`TLS_KEY_PATH` for direct TLS, `S3_SESSION_TOKEN`; S3 access key/secret are optional when the AWS provider chain (IRSA, ECS, IMDS) resolves credentials. The server drains in-flight requests on `SIGTERM`/`SIGINT`, bounded by `SHUTDOWN_DRAIN_TIMEOUT_MS` (default 30 s).
+- `bun run serve` — start the server. Requires `ADMIN_TOKEN` (min 16 characters); it exits on startup without a valid one. Optional: `PORT` (default `3000`), `BIND_ADDRESS` (listen interface only, default `0.0.0.0`), `TLS_CERT_PATH`/`TLS_KEY_PATH` for direct TLS, `S3_SESSION_TOKEN`; S3 access key/secret are optional when the AWS provider chain (IRSA, ECS, IMDS) resolves credentials. The server drains in-flight requests on `SIGTERM`/`SIGINT`, bounded by `SHUTDOWN_DRAIN_TIMEOUT_MS` (default 30 s).
 - `bun test` — run all colocated `*.spec.ts` and `e2e/*.e2e.spec.ts`. There is no test script; invoke `bun test` directly.
 - `bun run lint` — oxlint.
+- `bun run typecheck` — `tsc --noEmit`; part of the CI gate.
 - `bun run format` — oxfmt (rewrites files). The CI gate is `bun run format --check`, so format before committing.
 
 ## Code style
@@ -46,5 +47,5 @@ Docs are part of the change, not a follow-up: any change to behavior, the HTTP A
 
 - Unit tests colocate beside their source as `*.spec.ts`; end-to-end tests live under `e2e/`.
 - Commits follow Conventional Commits (`type(scope): subject`).
-- CI runs format-check, lint, audits, tests, docs build, Docker smoke, Helm lint/template, and Trivy filesystem scan on every PR (`.github/workflows/ci.yml`). The Helm chart lives in `charts/remotecache/`. Pushing to `main` runs the Docker publish workflow after its preflight gate and publishes GHCR image tags `:edge` + `:sha-<short>`.
+- CI runs format-check, lint, typecheck, audits, tests, docs build, Docker smoke, Helm lint/template, and Trivy filesystem scan on every PR (`.github/workflows/ci.yml`). The Helm chart lives in `charts/remotecache/`. Pushing to `main` runs the Docker publish workflow after its preflight gate and publishes GHCR image tags `:edge` + `:sha-<short>`.
   Pushing a `vX.Y.Z` tag publishes `:latest`, `:X.Y.Z`, and `:X.Y` for `linux/amd64` and `linux/arm64` (`.github/workflows/publish-image.yml`).
