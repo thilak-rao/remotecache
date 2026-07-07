@@ -40,7 +40,7 @@ config:
   # sweepIntervalMs: 60000 # sweep period; only runs when a policy above is set
 
 storage:
-  # "filesystem" (default) or "s3".
+  # "filesystem" (default), "s3", or "gcs".
   strategy: filesystem
   tokensDbPath: /app/data/nx-cache-server-tokens.sqlite
   filesystem:
@@ -59,6 +59,18 @@ s3:
   # An existing Secret with keys: access-key-id, secret-access-key, [session-token].
   # Use this or inline static credentials, not both.
   existingSecret: ''
+
+gcs:
+  bucket: ''
+  projectId: ''
+  # Optional explicit credentials. Prefer Workload Identity on GKE.
+  # keyFilename points at a mounted service account JSON file; mount it with
+  # extraVolumes/extraVolumeMounts or your own wrapper chart.
+  keyFilename: ''
+  # Existing Secret containing a service account JSON value. The chart never
+  # creates this Secret from a literal value.
+  existingSecret: ''
+  existingSecretKey: credentials.json
 
 # Direct TLS (optional). Prefer ingress / reverse-proxy TLS for most setups.
 tls:
