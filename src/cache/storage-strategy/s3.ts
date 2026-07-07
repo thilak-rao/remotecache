@@ -75,6 +75,10 @@ export class S3Strategy implements CacheStorageStrategy {
     return (await this.#getClient()).exists(hash);
   }
 
+  async checkReady(): Promise<void> {
+    await (await this.#getClient()).list({ maxKeys: 1 });
+  }
+
   async getStream(hash: string): Promise<ReadableStream> {
     return (await this.#getClient()).file(hash).stream();
   }

@@ -1,9 +1,9 @@
 import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
-import { accessSync, constants, linkSync, mkdirSync, unlinkSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import type { StorageOptions } from '@google-cloud/storage';
 import { CacheStorageStrategy } from './storage-strategy/storage-strategy.interface';
 import { S3Strategy } from './storage-strategy/s3';
-import { FileSystemStrategy } from './storage-strategy/file-system';
+import { GcsStrategy } from './storage-strategy/gcs';
+import { FileSystemStrategy, assertFileSystemCacheDirReady } from './storage-strategy/file-system';
 
 export type S3Resolved = {
   bucket: string;
@@ -16,6 +16,18 @@ export type S3Resolved = {
     }
   | { mode: 'chain' }
 );
+
+type GcsCredentials = NonNullable<StorageOptions['credentials']> & {
+  client_email: string;
+  private_key: string;
+};
+
+export type GcsResolved = {
+  bucket: string;
+  projectId?: string;
+  keyFilename?: string;
+  credentials?: GcsCredentials;
+};
 
 /**
  * Resolve S3 settings from the environment. Static credentials take precedence;
@@ -59,32 +71,71 @@ export function resolveS3Config(env: typeof Bun.env): S3Resolved {
   return { bucket, region, endpoint, mode: 'chain' };
 }
 
-function assertWritableDir(dir: string): void {
+function isGcsCredentials(credentials: unknown): credentials is GcsCredentials {
+  if (!credentials || typeof credentials !== 'object' || Array.isArray(credentials)) {
+    return false;
+  }
+
+  const candidate = credentials as { client_email?: unknown; private_key?: unknown };
+  return typeof candidate.client_email === 'string' && typeof candidate.private_key === 'string';
+}
+
+function parseGcsCredentials(raw: string): GcsCredentials {
+  let parsed: unknown;
   try {
-    mkdirSync(dir, { recursive: true });
-    accessSync(dir, constants.W_OK | constants.X_OK);
-  } catch (error) {
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    throw new Error('GCS_CREDENTIALS must be valid service account JSON.');
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error('GCS_CREDENTIALS must be a JSON object.');
+  }
+
+  if (!isGcsCredentials(parsed)) {
     throw new Error(
-      `CACHE_DIR "${dir}" is not writable: ${error instanceof Error ? error.message : String(error)}`,
+      'GCS_CREDENTIALS must be service account JSON with string client_email and private_key fields.',
     );
   }
 
-  const probe = join(dir, `.remotecache-link-probe-${crypto.randomUUID()}`);
-  const probeLink = `${probe}.link`;
-  try {
-    writeFileSync(probe, '');
-    linkSync(probe, probeLink);
-  } catch (error) {
-    throw new Error(
-      `CACHE_DIR "${dir}" does not support atomic hard-link commits: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  } finally {
-    for (const path of [probeLink, probe]) {
-      try {
-        unlinkSync(path);
-      } catch {}
-    }
+  return parsed;
+}
+
+/**
+ * Resolve Google Cloud Storage settings from the environment.
+ *
+ * @throws if `GCS_BUCKET` is missing, if explicit credential sources conflict,
+ * or if `GCS_CREDENTIALS` is not service-account JSON object text.
+ */
+export function resolveGcsConfig(env: typeof Bun.env): GcsResolved {
+  const bucket = env.GCS_BUCKET;
+  if (!bucket) {
+    throw new Error('GCS storage requires GCS_BUCKET.');
   }
+
+  const projectId = env.GCS_PROJECT_ID;
+  const keyFilename = env.GCS_KEY_FILENAME;
+  const credentialsRaw = env.GCS_CREDENTIALS;
+
+  if (keyFilename && credentialsRaw) {
+    throw new Error(
+      'GCS_KEY_FILENAME and GCS_CREDENTIALS are mutually exclusive. Set one explicit credential source, or unset both to use ambient credentials.',
+    );
+  }
+
+  if (keyFilename) {
+    return { bucket, ...(projectId ? { projectId } : {}), keyFilename };
+  }
+
+  if (credentialsRaw) {
+    return {
+      bucket,
+      ...(projectId ? { projectId } : {}),
+      credentials: parseGcsCredentials(credentialsRaw),
+    };
+  }
+
+  return { bucket, ...(projectId ? { projectId } : {}) };
 }
 
 /**
@@ -93,8 +144,9 @@ function assertWritableDir(dir: string): void {
  * mistake that should stop the server at boot, not surface as 500s at the
  * first upload.
  *
- * @throws on unknown `STORAGE_STRATEGY`, unwritable `CACHE_DIR`, or invalid S3
- * settings (see {@link resolveS3Config}).
+ * @throws on unknown `STORAGE_STRATEGY`, unwritable `CACHE_DIR`, invalid S3
+ * settings (see {@link resolveS3Config}), or invalid GCS settings (see
+ * {@link resolveGcsConfig}).
  */
 export function createCacheStorage(env: typeof Bun.env): CacheStorageStrategy {
   const kind = (env.STORAGE_STRATEGY ?? 'filesystem').toLowerCase();
@@ -109,13 +161,17 @@ export function createCacheStorage(env: typeof Bun.env): CacheStorageStrategy {
     });
   }
 
+  if (kind === 'gcs') {
+    return new GcsStrategy(resolveGcsConfig(env));
+  }
+
   if (kind !== 'filesystem') {
     throw new Error(
-      `Unknown STORAGE_STRATEGY "${env.STORAGE_STRATEGY}". Use "filesystem" or "s3".`,
+      `Unknown STORAGE_STRATEGY "${env.STORAGE_STRATEGY}". Use "filesystem", "s3", or "gcs".`,
     );
   }
 
   const cacheDir = env.CACHE_DIR ?? './cache';
-  assertWritableDir(cacheDir);
+  assertFileSystemCacheDirReady(cacheDir);
   return new FileSystemStrategy(cacheDir);
 }

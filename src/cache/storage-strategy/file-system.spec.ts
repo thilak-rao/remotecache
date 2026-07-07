@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { mkdtempSync, rmSync, statSync, utimesSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, statSync, utimesSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { FileSystemStrategy } from './file-system';
@@ -86,6 +86,17 @@ describe('FileSystemStrategy concurrent writes', () => {
     expect(await Bun.file(join(dir, 'failhash01')).exists()).toBe(false);
 
     rmSync(dir, { recursive: true, force: true });
+  });
+
+  it('does not create a missing cache dir during runtime readiness checks', async () => {
+    const base = mkdtempSync(join(tmpdir(), 'rc-fs-ready-'));
+    const dir = join(base, 'cache');
+    const strategy = new FileSystemStrategy(dir);
+
+    await expect(strategy.checkReady()).rejects.toThrow(/not writable/);
+    expect(existsSync(dir)).toBe(false);
+
+    rmSync(base, { recursive: true, force: true });
   });
 
   it('bumps mtime on getStream so eviction sees the entry as recently used', async () => {

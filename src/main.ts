@@ -14,6 +14,7 @@ import { safeEqual } from './safe-equal';
 import { MetricsRegistry } from './metrics/metrics-registry';
 import { getMetrics } from './metrics/get-metrics';
 import { getHealth } from './health/get-health';
+import { getReady } from './ready/get-ready';
 import { loadTlsConfig, type TlsConfig } from './tls/load-tls-config';
 import type { CacheStorageStrategy } from './cache/storage-strategy/storage-strategy.interface';
 import { createCacheEvictor, type CacheEvictor } from './cache/eviction';
@@ -84,7 +85,7 @@ let evictor: CacheEvictor | undefined;
 if (evictionEnabled) {
   if (!(storage instanceof FileSystemStrategy)) {
     logger.error(
-      'Error: CACHE_MAX_BYTES and CACHE_TTL_HOURS apply only to STORAGE_STRATEGY=filesystem. For S3, use bucket lifecycle rules instead — see the storage-strategies guide.',
+      'Error: CACHE_MAX_BYTES and CACHE_TTL_HOURS apply only to STORAGE_STRATEGY=filesystem. For object storage, use bucket lifecycle rules instead; see the storage-strategies guide.',
     );
     process.exit(1);
   }
@@ -166,6 +167,9 @@ export const server = Bun.serve({
   routes: {
     '/health': {
       GET: () => trackRequest(getHealth),
+    },
+    '/ready': {
+      GET: () => trackRequest(() => getReady({ tokenStorage, storage })),
     },
     '/metrics': {
       GET: () => trackRequest(() => getMetrics(metrics)),
