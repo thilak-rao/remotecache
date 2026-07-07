@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "prepare:agent-assets": "bun scripts/prepare-agent-assets.mjs",
+    "build": "bun run prepare:agent-assets && astro build",
     "preview": "astro preview"
   },
   "dependencies": {

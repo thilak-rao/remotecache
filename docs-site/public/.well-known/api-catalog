@@ -1,0 +1,25 @@
+{
+  "linkset": [
+    {
+      "anchor": "https://remotecache.dev/api/",
+      "service-desc": [
+        {
+          "href": "https://remotecache.dev/openapi.json",
+          "type": "application/json"
+        }
+      ],
+      "service-doc": [
+        {
+          "href": "https://remotecache.dev/api/",
+          "type": "text/html"
+        }
+      ],
+      "status": [
+        {
+          "href": "https://remotecache.dev/api/operations/gethealth/",
+          "type": "text/html"
+        }
+      ]
+    }
+  ]
+}

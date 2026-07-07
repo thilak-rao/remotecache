@@ -1,3 +1,5 @@
 dist/
 .astro/
 node_modules/
+public/openapi.json
+public/.well-known/agent-skills/index.json
