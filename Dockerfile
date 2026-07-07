@@ -2,7 +2,8 @@ FROM oven/bun:1.3.14-alpine@sha256:5acc90a93e91ff07bf72aa90a7c9f0fa189765aec90b4
 
 # Patch openssl past the pinned base image's build: libssl3/libcrypto3 3.5.6-r0
 # carries CVE-2026-45447 (heap use-after-free in PKCS7_verify), fixed in 3.5.7-r0.
-RUN apk upgrade --no-cache libssl3 libcrypto3
+RUN apk upgrade --no-cache libssl3 libcrypto3 \
+    && apk add --no-cache su-exec
 
 WORKDIR /app
 
@@ -17,14 +18,14 @@ RUN bun install --frozen-lockfile --production
 
 COPY tsconfig.json ./
 COPY src ./src
+COPY docker-entrypoint.sh ./
 
-# Create the writable data/cache directories and hand ownership to the
-# unprivileged `bun` user (uid 1000) that ships with the base image, so the
-# server never runs as root.
-RUN mkdir -p "$CACHE_DIR" "$(dirname "$TOKENS_DB_PATH")" \
+# Create the writable image-local data/cache directories. Runtime mounts are
+# prepared by docker-entrypoint.sh before it drops to the `bun` user.
+RUN chmod +x /app/docker-entrypoint.sh \
+    && mkdir -p "$CACHE_DIR" "$(dirname "$TOKENS_DB_PATH")" \
     && chown -R bun:bun /app
 
-USER bun
-
 EXPOSE 3000
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["bun", "/app/src/main.ts"]

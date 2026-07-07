@@ -1,0 +1,26 @@
+app = "remotecache"
+primary_region = "ord"
+kill_signal = "SIGTERM"
+kill_timeout = "35s"
+
+[build]
+image = "ghcr.io/thilak-rao/remotecache:latest"
+
+[env]
+CACHE_DIR = "/app/data/cache"
+TOKENS_DB_PATH = "/app/data/tokens.sqlite"
+
+[http_service]
+internal_port = 3000
+force_https = true
+
+[[http_service.checks]]
+interval = "30s"
+timeout = "5s"
+grace_period = "30s"
+method = "GET"
+path = "/health"
+
+[[mounts]]
+source = "remotecache_data"
+destination = "/app/data"

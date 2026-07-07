@@ -1,6 +1,6 @@
 ---
 title: Docker
-description: Run the self-hosted Nx remote cache server as a small non-root container from GHCR, with persistence, health checks, direct TLS, and Prometheus metrics.
+description: Run the self-hosted Nx remote cache server as a small container from GHCR, with persistence, health checks, direct TLS, and Prometheus metrics.
 ---
 
 The self-hosted Nx remote cache server ships as a pre-built container image published to GHCR, so there is no build step. Docker is the recommended path for production. For a host install without a container runtime see [Standalone binaries](/deploy/binaries/), and for clusters see [Kubernetes & Helm](/deploy/kubernetes/).
@@ -23,7 +23,7 @@ ghcr.io/thilak-rao/remotecache
 
 The old main-branch `latest` behavior is intentionally retired. For production, pin `:X.Y.Z` or `:X.Y`; use `:latest` only when you deliberately want the newest stable release.
 
-Images are published for `linux/amd64` and `linux/arm64`. Release builds include BuildKit SBOM and provenance attestations. The container runs as a non-root user, and the Bun base image is pinned by digest.
+Images are published for `linux/amd64` and `linux/arm64`. Release builds include BuildKit SBOM and provenance attestations. The Bun base image is pinned by digest. The entrypoint prepares mounted data directories, then starts the server as the non-root `bun` user.
 
 ## Run
 
