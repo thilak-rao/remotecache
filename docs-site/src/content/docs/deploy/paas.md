@@ -11,7 +11,7 @@ The repository includes starter config for three app platforms:
 | Render   | `render.yaml`  | Deploys `ghcr.io/thilak-rao/remotecache:latest`, creates one web service, and attaches one disk at `/app/data`. |
 | Fly.io   | `fly.toml`     | Deploys the GHCR image, exposes port `3000`, checks `/health`, and mounts a Fly volume at `/app/data`.          |
 
-These templates target a single instance with filesystem storage. That is the simplest way to try the server on a PaaS. For larger cache artifacts or stricter bucket lifecycle controls, use S3 storage instead of a platform-local volume. S3 stores cache artifacts only; the token database still needs persistent storage unless you manage tokens some other way.
+These templates target a single instance with filesystem storage. That is the simplest way to try the server on a PaaS. For larger cache artifacts or stricter bucket lifecycle controls, use object storage instead of a platform-local volume. Object storage stores cache artifacts only; the token database still needs persistent storage unless you manage tokens some other way.
 
 The Render and Fly.io templates use `ghcr.io/thilak-rao/remotecache:latest` as a starter default. Before production, replace `latest` with a pinned release tag such as `:X.Y.Z` or `:X.Y`.
 
@@ -94,16 +94,16 @@ After deploy, verify health:
 curl -fsS https://<your-app-name>.fly.dev/health
 ```
 
-## When to use S3 instead
+## When to use object storage instead
 
-Use S3-compatible storage when:
+Use S3-compatible storage or GCS when:
 
 - the cache is too large for one platform disk
 - you need backups, lifecycle policies, or bucket-level retention
 - you want the app instance to be disposable
 - you prefer object-store controls over platform-local volume behavior
 
-Set `STORAGE_STRATEGY=s3` and provide the S3 variables from [Storage strategies](/guides/storage-strategies/). Keep the token DB on a persistent disk unless you manage tokens some other way.
+Set `STORAGE_STRATEGY=s3` or `STORAGE_STRATEGY=gcs` and provide the matching variables from [Storage strategies](/guides/storage-strategies/). Keep the token DB on a persistent disk unless you manage tokens some other way.
 
 ## Security notes
 

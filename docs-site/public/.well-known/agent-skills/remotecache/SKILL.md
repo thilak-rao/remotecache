@@ -1,6 +1,6 @@
 ---
 name: remotecache
-description: Use when configuring, deploying, securing, or integrating remotecache, a self-hosted Nx remote cache server. Covers the Nx cache API contract, bearer-token permissions, filesystem and S3 storage, Docker, Kubernetes, and security boundaries for trusted and untrusted CI.
+description: Use when configuring, deploying, securing, or integrating remotecache, a self-hosted Nx remote cache server. Covers the Nx cache API contract, bearer-token permissions, filesystem, S3, or GCS storage, Docker, Kubernetes, and security boundaries for trusted and untrusted CI.
 ---
 
 # remotecache
@@ -9,7 +9,7 @@ Use this skill when an agent needs to understand, configure, deploy, or integrat
 
 ## What remotecache is
 
-remotecache is a self-hosted Nx remote cache server. It implements the Nx custom remote cache HTTP API and can store cache artifacts on local filesystem storage or S3-compatible object storage.
+remotecache is a self-hosted Nx remote cache server. It implements the Nx custom remote cache HTTP API and can store cache artifacts on local filesystem storage, S3-compatible object storage, or Google Cloud Storage.
 
 Primary docs:
 
@@ -39,6 +39,7 @@ The core endpoints are:
 - `GET /v1/cache/:hash`: download a cache artifact.
 - `PUT /v1/cache/:hash`: upload a cache artifact with a valid `Content-Length`.
 - `GET /health`: lightweight health check.
+- `GET /ready`: dependency readiness check for token storage and cache storage.
 - `GET /metrics`: Prometheus metrics.
 - `/v1/admin/tokens`: token administration.
 

@@ -44,7 +44,7 @@ Nx Cloud has genuine advantages that a self-hosted cache cannot replicate.
 
 ## When self-hosting this server wins
 
-**Cost at scale.** Once a team outgrows the Hobby credit cap, Nx Cloud bills per active contributor. For large teams or organizations running multiple monorepos, that per-seat cost compounds. This server costs infrastructure: one container and an S3-compatible bucket (or a local filesystem volume). The delta between that and $19/contributor-month × N is the concrete saving.
+**Cost at scale.** Once a team outgrows the Hobby credit cap, Nx Cloud bills per active contributor. For large teams or organizations running multiple monorepos, that per-seat cost compounds. This server costs infrastructure: one container and an object storage bucket (S3-compatible or GCS), or a local filesystem volume. The delta between that and $19/contributor-month × N is the concrete saving.
 
 **Data residency and air-gapped environments.** If your security policy prohibits build artifacts from leaving your network — regulated industries, government contractors, financial services — managed SaaS is ruled out. This server runs wherever your infrastructure runs: on-prem, inside your VPC, or fully air-gapped.
 

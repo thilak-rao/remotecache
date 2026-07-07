@@ -23,7 +23,8 @@ The short CREEP answer: remotecache gives you append-only writes and separate `r
   - `GET /v1/cache/:hash` (download)
   - `PUT /v1/cache/:hash` (upload)
 - Prometheus metrics at `GET /metrics` (unauthenticated; cache hit-rate, request counts, uploaded bytes, eviction counters)
-- Health check at `GET /health` (unauthenticated; process liveness)
+- `GET /health` (unauthenticated; process liveness)
+- `GET /ready` (unauthenticated; token DB + storage backend readiness)
 - Token-based auth
   - **readonly** tokens can download
   - **full** tokens can download + upload
@@ -31,10 +32,11 @@ The short CREEP answer: remotecache gives you append-only writes and separate `r
 - Storage strategies
   - local filesystem (default)
   - S3-compatible storage (AWS S3, MinIO, etc.)
+  - Google Cloud Storage
 - Opt-in filesystem cache eviction (`CACHE_MAX_BYTES` LRU size cap, `CACHE_TTL_HOURS` last-access TTL)
 - SQLite-backed token store
 - Direct TLS (`TLS_CERT_PATH` + `TLS_KEY_PATH`) or terminate TLS at your proxy/ingress
-- Helm chart for Kubernetes (`charts/remotecache/`)
+- Helm chart for Kubernetes (`charts/remotecache/`; chart values support filesystem, S3, and GCS)
 
 ## Quickstart
 
@@ -74,7 +76,7 @@ docker run -p 3000:3000 \
 ```
 
 `latest` points at the newest stable release. Use `edge` only for unreleased builds from `main`.
-Health checks can call `GET /health` without a token.
+Use token-free `GET /health` for liveness and `GET /ready` when a probe must check the token DB and storage backend.
 
 For Kubernetes, install the Helm chart in `charts/remotecache/`. See the [Deployment guide](https://remotecache.dev/guides/deployment/).
 

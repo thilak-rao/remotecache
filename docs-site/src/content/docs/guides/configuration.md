@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: 'Every environment variable for the self-hosted Nx remote cache server: admin token, port, storage strategy, upload limits, and S3 settings.'
+description: 'Every environment variable for the self-hosted Nx remote cache server: admin token, port, storage strategy, GCS, readiness probes, upload limits, and object storage settings.'
 ---
 
 The self-hosted Nx remote cache server reads all configuration from environment variables. There are no config files.
@@ -14,7 +14,7 @@ The self-hosted Nx remote cache server reads all configuration from environment 
 | `TOKENS_DB_PATH`            | no       | `./data/nx-cache-server-tokens.sqlite` | SQLite token DB path. Persist this in production.                                                                                               |
 | `MAX_UPLOAD_BYTES`          | no       | `524288000` (500 MiB)                  | Upload size cap for `PUT`; over the limit returns `413`.                                                                                        |
 | `SHUTDOWN_DRAIN_TIMEOUT_MS` | no       | `30000`                                | Max wait for in-flight requests on `SIGTERM`/`SIGINT` before the server exits anyway.                                                           |
-| `STORAGE_STRATEGY`          | no       | filesystem                             | `filesystem` or `s3`. Any other value refuses to start.                                                                                         |
+| `STORAGE_STRATEGY`          | no       | filesystem                             | `filesystem`, `s3`, or `gcs`. Any other value refuses to start.                                                                                 |
 | `CACHE_DIR`                 | no       | `./cache`                              | Filesystem cache directory (filesystem strategy).                                                                                               |
 | `CACHE_MAX_BYTES`           | no       | —                                      | Opt-in size cap for the filesystem cache; a background sweep evicts least-recently-used entries until the cache fits. Filesystem strategy only. |
 | `CACHE_TTL_HOURS`           | no       | —                                      | Opt-in TTL for the filesystem cache; the sweep deletes entries not accessed within the window. Filesystem strategy only.                        |
@@ -26,6 +26,10 @@ The self-hosted Nx remote cache server reads all configuration from environment 
 | `S3_SECRET_ACCESS_KEY`      | no       | —                                      | S3 secret key. Omit (with the key id) to use the AWS credential chain.                                                                          |
 | `S3_SESSION_TOKEN`          | no       | —                                      | Session token for temporary S3 credentials (STS / assumed roles).                                                                               |
 | `S3_ENDPOINT`               | no       | —                                      | Custom endpoint for MinIO / other S3-compatible providers.                                                                                      |
+| `GCS_BUCKET`                | for gcs  | —                                      | Google Cloud Storage bucket. Required when `STORAGE_STRATEGY=gcs`.                                                                              |
+| `GCS_PROJECT_ID`            | no       | —                                      | Google Cloud project ID. Set when ambient credentials do not provide a project.                                                                 |
+| `GCS_KEY_FILENAME`          | no       | —                                      | Path to a service-account JSON key file. Do not set with `GCS_CREDENTIALS`.                                                                     |
+| `GCS_CREDENTIALS`           | no       | —                                      | Service-account JSON text from a secret. Do not set with `GCS_KEY_FILENAME`.                                                                    |
 | `BIND_ADDRESS`              | no       | `0.0.0.0`                              | Listen interface. Use `::` for IPv6 / dual-stack.                                                                                               |
 | `TLS_CERT_PATH`             | no       | —                                      | PEM certificate path. Set with `TLS_KEY_PATH` to serve HTTPS directly.                                                                          |
 | `TLS_KEY_PATH`              | no       | —                                      | PEM private-key path. Set with `TLS_CERT_PATH` to serve HTTPS directly.                                                                         |
@@ -35,11 +39,13 @@ The self-hosted Nx remote cache server reads all configuration from environment 
 
 `ADMIN_TOKEN` is the only required variable. The server exits on startup if it's not set. Must be at least 16 characters (the server refuses to start otherwise); generate one with `openssl rand -hex 32`. There is no rate limiting on authentication — treat this value like a root credential.
 
-`GET /health` has no configuration. It returns `OK` when the process is accepting requests. Use it for liveness/readiness checks.
+`GET /health` has no configuration. It returns `OK` when the process is accepting requests. Use it for liveness only.
 
-For production, `TOKENS_DB_PATH` and `CACHE_DIR` (or the S3 bucket) need to survive restarts. Mount a persistent volume for `./data` and `./cache`, or point these variables at a path that persists.
+`GET /ready` is unauthenticated and checks SQLite token storage plus the configured cache backend. It returns a static `Not Ready` response on failure; dependency details go to the logs.
 
-`CACHE_MAX_BYTES` and `CACHE_TTL_HOURS` enable built-in eviction for the filesystem strategy; each works alone and they compose (TTL runs first, then the size cap). "Accessed" means read or written — every cache hit refreshes an entry's recency, so artifacts in active use survive the TTL and are the last candidates for the size cap. Size the cap well above your largest artifact: a smaller cap evicts that artifact on the next sweep. Setting either variable with `STORAGE_STRATEGY=s3` is a startup error — use bucket lifecycle rules instead (see [Storage strategies](/guides/storage-strategies/)).
+For production, `TOKENS_DB_PATH` and `CACHE_DIR` (or the object storage bucket) need to survive restarts. Mount a persistent volume for `./data` and `./cache`, or point these variables at a path that persists.
+
+`CACHE_MAX_BYTES` and `CACHE_TTL_HOURS` enable built-in eviction for the filesystem strategy; each works alone and they compose (TTL runs first, then the size cap). "Accessed" means read or written: every cache hit refreshes an entry's recency, so artifacts in active use survive the TTL and are the last candidates for the size cap. Size the cap well above your largest artifact: a smaller cap evicts that artifact on the next sweep. Setting either variable with object storage (`s3` or `gcs`) is a startup error. Use bucket lifecycle rules instead (see [Storage strategies](/guides/storage-strategies/)).
 
 For S3, set `STORAGE_STRATEGY=s3` and `S3_BUCKET`. Provide credentials one of two ways:
 
@@ -49,6 +55,8 @@ For S3, set `STORAGE_STRATEGY=s3` and `S3_BUCKET`. Provide credentials one of tw
 Set the two static keys together or not at all: providing only one fails fast at startup rather than silently falling back to the provider chain.
 
 `S3_REGION` (or the AWS-standard `AWS_REGION`) sets the region. MinIO and other compatible providers also need `S3_ENDPOINT`. If you are moving from `@nx/s3-cache` (or another deprecated `@nx/*-cache` plugin), see [Migrate from @nx/s3-cache](/guides/migrate-from-nx-s3-cache/).
+
+For GCS, set `STORAGE_STRATEGY=gcs` and `GCS_BUCKET`. Prefer ambient Google credentials from the runtime, such as Workload Identity or Application Default Credentials. For explicit credentials, set exactly one of `GCS_KEY_FILENAME` or secret-backed `GCS_CREDENTIALS`; setting both fails at startup.
 
 `MAX_UPLOAD_BYTES` caps `PUT /v1/cache/:hash` uploads. Anything over the limit returns `413` before
 the body hits storage. The server sizes its HTTP request-body limit from this value, so caps above

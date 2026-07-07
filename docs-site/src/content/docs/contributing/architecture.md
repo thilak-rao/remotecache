@@ -34,7 +34,7 @@ Handlers never call `new Response` directly. Status codes, content types, and bo
 
 ## Cache storage
 
-Storage sits behind the `CacheStorageStrategy` interface in `src/cache/storage-strategy/`. `createCacheStorage` reads `STORAGE_STRATEGY` from the environment and returns the right implementation. Filesystem (default) writes to `CACHE_DIR` on disk. S3 writes to an S3-compatible bucket using `S3_*` env vars.
+Storage sits behind the `CacheStorageStrategy` interface in `src/cache/storage-strategy/`. `createCacheStorage` reads `STORAGE_STRATEGY` from the environment and returns the right implementation. Filesystem (default) writes to `CACHE_DIR` on disk. S3 writes to an S3-compatible bucket using `S3_*` env vars. GCS writes to a Google Cloud Storage bucket using `GCS_*` env vars.
 
 To add a new backend: implement `CacheStorageStrategy` and register it in `createCacheStorage`.
 

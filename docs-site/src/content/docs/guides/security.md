@@ -27,8 +27,9 @@ one `409`.
 
 The S3 strategy uses a conditional `PUT` with `If-None-Match: *`, so providers that implement S3
 conditional writes, including AWS S3 and MinIO, reject a concurrent second writer instead of
-overwriting the first committed object. The server maps that precondition failure to the same `409`
-response as the filesystem strategy.
+overwriting the first committed object. The GCS strategy uses `ifGenerationMatch: 0`, so Google
+Cloud Storage rejects writes when an object already exists for the hash. The server maps these
+object-storage precondition failures to the same `409` response as the filesystem strategy.
 
 ## Trust boundaries: containing cache poisoning
 
