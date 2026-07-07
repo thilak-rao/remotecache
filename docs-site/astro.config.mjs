@@ -33,6 +33,14 @@ export default defineConfig({
           tag: 'meta',
           attrs: { name: 'twitter:image', content: 'https://remotecache.dev/og.png' },
         },
+        {
+          tag: 'script',
+          attrs: {
+            defer: true,
+            src: 'https://t.numen.ie/script.js',
+            'data-website-id': 'd49a6f73-4e76-44f5-a0e8-7346d3251169',
+          },
+        },
       ],
       plugins: [
         starlightLinksValidator({
