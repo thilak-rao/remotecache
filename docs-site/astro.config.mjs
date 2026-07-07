@@ -73,6 +73,7 @@ export default defineConfig({
           label: 'Deploy',
           items: [
             { label: 'Docker', slug: 'deploy/docker' },
+            { label: 'Railway, Render, and Fly.io', slug: 'deploy/paas' },
             { label: 'Kubernetes & Helm', slug: 'deploy/kubernetes' },
             { label: 'Standalone binaries', slug: 'deploy/binaries' },
           ],

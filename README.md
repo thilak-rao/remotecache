@@ -15,6 +15,8 @@ A small, self-hosted Nx remote cache server built on Bun.
 
 Nx's official self-hosted cache went free, then paid ($250/seat/year Powerpack), then free again (but Commercial-licensed, not MIT), then deprecated in under two years — all four `@nx/*-cache` plugins were sunset in May 2026 citing CVE-2025-36852 cache poisoning. This server is the MIT-licensed alternative: a custom remote-cache endpoint you own and operate, with no license restrictions and no vendor lock-in. [Full story →](https://remotecache.dev/why/)
 
+The short CREEP answer: remotecache gives you append-only writes and separate `readonly`/`full` tokens. That lets untrusted CI read cache entries without writing poisoned artifacts, which is the write-trust boundary the deprecated single-credential plugins lacked. It is not Nx Cloud's cryptographic artifact verification; read the [security model](https://remotecache.dev/guides/security/) before exposing the server to CI.
+
 ## Features
 
 - Nx remote cache endpoints
@@ -78,9 +80,12 @@ For Kubernetes, install the Helm chart in `charts/remotecache/`. See the [Deploy
 
 Released versions also publish a Helm OCI chart (`oci://ghcr.io/thilak-rao/charts/remotecache`) and standalone binaries for Linux, macOS, and Windows on the [Releases page](https://github.com/thilak-rao/remotecache/releases). See the [Deployment guide](https://remotecache.dev/guides/deployment/) for verification and install steps.
 
+Repo-local starter configs are included for Railway (`railway.json`), Render (`render.yaml`), and Fly.io (`fly.toml`). See [Railway, Render, and Fly.io](https://remotecache.dev/deploy/paas/) for the required secrets, persistence notes, and provider-side validation commands.
+
 ## Links
 
 - [Configuration](https://remotecache.dev/guides/configuration/) — all environment variables
+- [Railway, Render, and Fly.io](https://remotecache.dev/deploy/paas/) — starter PaaS deploy templates
 - [API Reference](https://remotecache.dev/api/) — full HTTP API
 - [Security model](https://remotecache.dev/guides/security/) — token auth, hashing, permissions
 - [Contributing](https://remotecache.dev/contributing/) — how to contribute

@@ -37,7 +37,7 @@ At peak, self-hosted Nx caching required **Powerpack at $250/seat/year**. Even d
 - Upload size cap (returns HTTP 413 on oversized artifacts)
 - Constant-time admin credential comparison (timing-safe)
 - Path-traversal and hash input hardening
-- Non-root pinned container image
+- Pinned container image that runs the server as `bun`
 - GHCR image publishing
 - Repository hardening (branch protection, dependabot, security policy)
 - This documentation site

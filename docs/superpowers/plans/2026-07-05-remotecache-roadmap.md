@@ -50,6 +50,8 @@ Each feature needs brainstorming (`superpowers:brainstorming`) before its plan:
 
 ## Phase 4 — Distribution blitz (run in parallel with Phase 3)
 
+Repo-local plan: [`2026-07-07-phase-4-distribution.md`](./2026-07-07-phase-4-distribution.md)
+
 - Post remotecache in the Nx RFC discussion (nrwl/nx#30548); open an nx.dev issue/PR proposing a "community implementations" section on the self-hosted-caching page
 - One-click deploy templates: Railway, Render, Fly.io
 - List the Helm chart on Artifact Hub; mirror the image to Docker Hub

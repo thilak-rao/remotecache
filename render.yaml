@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: remotecache
+    runtime: image
+    image:
+      url: ghcr.io/thilak-rao/remotecache:latest
+    plan: starter
+    numInstances: 1
+    healthCheckPath: /health
+    maxShutdownDelaySeconds: 35
+    envVars:
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: PORT
+        value: 3000
+      - key: CACHE_DIR
+        value: /app/data/cache
+      - key: TOKENS_DB_PATH
+        value: /app/data/tokens.sqlite
+    disk:
+      name: remotecache-data
+      mountPath: /app/data
+      sizeGB: 10
