@@ -66,4 +66,4 @@ Bun's 128 MiB default work as configured.
 
 Set `TLS_CERT_PATH` and `TLS_KEY_PATH` together to serve HTTPS directly; the server exits on startup if only one is set or a file is missing. For most deployments, terminate TLS at an ingress or reverse proxy instead. See [Docker](/deploy/docker/#direct-tls) for direct TLS and [Kubernetes & Helm](/deploy/kubernetes/) for the chart.
 
-Errors always print. Set `VERBOSE=1` (or `true`) to also see request details and cache hits/misses.
+Errors always print. Set `VERBOSE=1` (or `true`) to also print `logger.info` and `logger.log` messages, such as startup and shutdown notices.

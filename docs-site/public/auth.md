@@ -6,7 +6,7 @@ remotecache uses operator-provisioned bearer tokens. It does not support OAuth/O
 
 Nx cache clients call remotecache with an `Authorization: Bearer TOKEN_VALUE` header. Operators create cache tokens through the admin API or another trusted provisioning process.
 
-Cache tokens have one permission:
+Cache tokens have one of two permissions:
 
 - `readonly`: download cache artifacts only.
 - `full`: download and upload cache artifacts.
