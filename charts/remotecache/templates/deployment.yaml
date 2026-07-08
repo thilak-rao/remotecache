@@ -7,13 +7,13 @@
 {{- if and .Values.adminToken (lt (len (toString .Values.adminToken)) 16) }}
 {{- fail "remotecache: adminToken must be at least 16 characters" }}
 {{- end }}
-{{- if not (or (eq .Values.storage.strategy "filesystem") (eq .Values.storage.strategy "s3")) }}
-{{- fail "remotecache: storage.strategy must be either filesystem or s3" }}
+{{- if not (or (eq .Values.storage.strategy "filesystem") (eq .Values.storage.strategy "s3") (eq .Values.storage.strategy "gcs")) }}
+{{- fail "remotecache: storage.strategy must be filesystem, s3, or gcs" }}
 {{- end }}
 {{- if and (eq .Values.storage.strategy "s3") (not .Values.s3.bucket) }}
 {{- fail "remotecache: storage.strategy=s3 requires s3.bucket" }}
 {{- end }}
-{{- if and .Values.s3.existingSecret (or .Values.s3.accessKeyId .Values.s3.secretAccessKey .Values.s3.sessionToken) }}
+{{- if and (eq .Values.storage.strategy "s3") .Values.s3.existingSecret (or .Values.s3.accessKeyId .Values.s3.secretAccessKey .Values.s3.sessionToken) }}
 {{- fail "remotecache: set only one of s3.existingSecret or inline S3 credentials" }}
 {{- end }}
 {{- if and (eq .Values.storage.strategy "s3") (not .Values.s3.existingSecret) (ne (not .Values.s3.accessKeyId) (not .Values.s3.secretAccessKey)) }}
@@ -22,6 +22,12 @@
 {{- if and (eq .Values.storage.strategy "s3") (not .Values.s3.existingSecret) .Values.s3.sessionToken (not (and .Values.s3.accessKeyId .Values.s3.secretAccessKey)) }}
 {{- fail "remotecache: s3.sessionToken requires s3.accessKeyId and s3.secretAccessKey" }}
 {{- end }}
+{{- if and (eq .Values.storage.strategy "gcs") (not .Values.gcs.bucket) }}
+{{- fail "remotecache: storage.strategy=gcs requires gcs.bucket" }}
+{{- end }}
+{{- if and (eq .Values.storage.strategy "gcs") .Values.gcs.existingSecret .Values.gcs.keyFilename }}
+{{- fail "remotecache: set only one of gcs.existingSecret or gcs.keyFilename" }}
+{{- end }}
 {{- if and .Values.tls.enabled (not .Values.tls.existingSecret) }}
 {{- fail "remotecache: tls.enabled requires tls.existingSecret (a kubernetes.io/tls Secret)" }}
 {{- end }}
@@ -29,7 +35,7 @@
 {{- fail "remotecache: replicaCount > 1 is not supported: the SQLite token store and data PVC are single-writer. Track multi-replica support in the project roadmap." }}
 {{- end }}
 {{- if and (ne .Values.storage.strategy "filesystem") (or .Values.config.cacheMaxBytes .Values.config.cacheTtlHours .Values.config.sweepIntervalMs) }}
-{{- fail "remotecache: config.cacheMaxBytes/cacheTtlHours/sweepIntervalMs require storage.strategy=filesystem (use S3 lifecycle rules instead)" }}
+{{- fail "remotecache: config.cacheMaxBytes/cacheTtlHours/sweepIntervalMs require storage.strategy=filesystem (use object storage lifecycle rules instead)" }}
 {{- end }}
 {{- if and .Values.ingress.enabled (not .Values.ingress.hosts) }}
 {{- fail "remotecache: ingress.enabled requires at least one entry in ingress.hosts" }}
@@ -142,6 +148,25 @@ spec:
                   optional: true
             {{- end }}
             {{- end }}
+            {{- if eq .Values.storage.strategy "gcs" }}
+            - name: GCS_BUCKET
+              value: {{ .Values.gcs.bucket | quote }}
+            {{- if .Values.gcs.projectId }}
+            - name: GCS_PROJECT_ID
+              value: {{ .Values.gcs.projectId | quote }}
+            {{- end }}
+            {{- if .Values.gcs.keyFilename }}
+            - name: GCS_KEY_FILENAME
+              value: {{ .Values.gcs.keyFilename | quote }}
+            {{- end }}
+            {{- if .Values.gcs.existingSecret }}
+            - name: GCS_CREDENTIALS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.gcs.existingSecret }}
+                  key: {{ .Values.gcs.existingSecretKey }}
+            {{- end }}
+            {{- end }}
             {{- if .Values.tls.enabled }}
             - name: TLS_CERT_PATH
               value: {{ printf "%s/tls.crt" .Values.tls.mountPath | quote }}
@@ -163,7 +188,7 @@ spec:
           {{- if .Values.readinessProbe.enabled }}
           readinessProbe:
             httpGet:
-              path: /health
+              path: /ready
               port: http
               scheme: {{ if .Values.tls.enabled }}HTTPS{{ else }}HTTP{{ end }}
             initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}

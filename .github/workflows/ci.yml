@@ -68,6 +68,9 @@ jobs:
       - name: Helm template (s3)
         run: helm template rc charts/remotecache -f charts/remotecache/ci/s3-values.yaml
 
+      - name: Helm template (gcs)
+        run: helm template rc charts/remotecache -f charts/remotecache/ci/gcs-values.yaml
+
       - name: Helm template (tls)
         run: helm template rc charts/remotecache -f charts/remotecache/ci/tls-values.yaml
 

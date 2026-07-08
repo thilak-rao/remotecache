@@ -1,8 +1,55 @@
 import { join } from 'node:path';
 import { CacheEntryExistsError, CacheStorageStrategy } from './storage-strategy.interface';
 import { link, mkdir, rm, utimes } from 'node:fs/promises';
-import { existsSync, rmSync } from 'node:fs';
+import {
+  accessSync,
+  constants,
+  existsSync,
+  linkSync,
+  mkdirSync,
+  rmSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { logger } from '../../logger';
+
+function assertExistingFileSystemCacheDirReady(dir: string): void {
+  try {
+    accessSync(dir, constants.W_OK | constants.X_OK);
+  } catch (error) {
+    throw new Error(
+      `CACHE_DIR "${dir}" is not writable: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+
+  const probe = join(dir, `.remotecache-link-probe-${crypto.randomUUID()}`);
+  const probeLink = `${probe}.link`;
+  try {
+    writeFileSync(probe, '');
+    linkSync(probe, probeLink);
+  } catch (error) {
+    throw new Error(
+      `CACHE_DIR "${dir}" does not support atomic hard-link commits: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  } finally {
+    for (const path of [probeLink, probe]) {
+      try {
+        unlinkSync(path);
+      } catch {}
+    }
+  }
+}
+
+export function assertFileSystemCacheDirReady(dir: string): void {
+  try {
+    mkdirSync(dir, { recursive: true });
+  } catch (error) {
+    throw new Error(
+      `CACHE_DIR "${dir}" is not writable: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  assertExistingFileSystemCacheDirReady(dir);
+}
 
 export class FileSystemStrategy implements CacheStorageStrategy {
   constructor(public readonly cacheDir: string) {
@@ -32,6 +79,10 @@ export class FileSystemStrategy implements CacheStorageStrategy {
     // Unique per write: concurrent uploads of the same hash must never share
     // a temp file, or their chunks interleave into a corrupt artifact.
     return join(this.cacheDir, `${hash}.${crypto.randomUUID()}.tmp`);
+  }
+
+  async checkReady(): Promise<void> {
+    assertExistingFileSystemCacheDirReady(this.cacheDir);
   }
 
   async exists(hash: string): Promise<boolean> {

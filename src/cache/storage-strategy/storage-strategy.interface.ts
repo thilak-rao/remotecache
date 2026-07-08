@@ -8,6 +8,7 @@ export interface CacheStorageStrategy {
     stream: ReadableStream<Uint8Array>,
     contentLength: number,
   ): Promise<void>;
+  checkReady(): Promise<void>;
 }
 
 /**

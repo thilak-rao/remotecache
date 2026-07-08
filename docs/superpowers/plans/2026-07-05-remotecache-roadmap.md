@@ -45,8 +45,9 @@ Each feature needs brainstorming (`superpowers:brainstorming`) before its plan:
    (spec: [`../specs/2026-07-06-cache-eviction-design.md`](../specs/2026-07-06-cache-eviction-design.md),
    plan: [`2026-07-06-cache-eviction.md`](./2026-07-06-cache-eviction.md)). The S3 lifecycle recipe
    already landed in Phase 2.
-2. **GCS + Azure Blob storage strategies** — captures migrating `@nx/gcs-cache` / `@nx/azure-cache` users. Contained additions behind `CacheStorageStrategy`; requires the Phase 2 integration-test harness first.
-3. Optional deep `/ready` probe (backend reachability) to pair with the Helm readiness probe.
+2. **Google Cloud Storage strategy** — shipped: `STORAGE_STRATEGY=gcs` with append-only writes via `ifGenerationMatch: 0`.
+3. **Azure Blob storage strategy** — pending: same Phase 3 migration thesis, separate spec/plan cycle.
+4. **Deep `/ready` probe** — shipped: token DB + configured storage backend readiness for orchestrators.
 
 ## Phase 4 — Distribution blitz (run in parallel with Phase 3)
 

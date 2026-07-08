@@ -33,6 +33,13 @@ export function payloadTooLargeError(message: string) {
   });
 }
 
+export function serviceUnavailable(message: string) {
+  return new Response(message, {
+    status: 503,
+    headers: { 'Content-Type': 'text/plain' },
+  });
+}
+
 export function noContentResponse() {
   return new Response(null, { status: 204 });
 }

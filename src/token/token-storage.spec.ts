@@ -91,4 +91,11 @@ describe('TokenStorage', () => {
     expect(readStoredValue(dbPath, 'legacy')).toBe(hashToken('plaintext-token'));
     expect(readStoredValue(dbPath, 'legacy')).not.toBe('plaintext-token');
   });
+
+  it('checks sqlite readiness with a simple query', async () => {
+    const dbPath = await freshDbPath();
+    const storage = new TokenStorage(dbPath);
+
+    await expect(storage.checkReady()).resolves.toBeUndefined();
+  });
 });

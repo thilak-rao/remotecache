@@ -41,6 +41,7 @@ Chart changes should pass lint and template rendering:
 helm lint charts/remotecache --set adminToken=ci-admin-token-0123456789
 helm template rc charts/remotecache -f charts/remotecache/ci/filesystem-values.yaml
 helm template rc charts/remotecache -f charts/remotecache/ci/s3-values.yaml
+helm template rc charts/remotecache -f charts/remotecache/ci/gcs-values.yaml
 helm template rc charts/remotecache -f charts/remotecache/ci/tls-values.yaml
 helm template rc charts/remotecache -f charts/remotecache/ci/extras-values.yaml
 ```
@@ -48,7 +49,8 @@ helm template rc charts/remotecache -f charts/remotecache/ci/extras-values.yaml
 ## Conventions
 
 - Conventional Commits: `type(scope): subject` (`feat|fix|docs|refactor|perf|test|build|ci|chore|revert`).
-- Bun built-ins only — no Node-only equivalents or extra deps for what Bun provides. The one approved exception is `@aws-sdk/credential-providers`, used to resolve EKS IRSA / ECS / IMDS credentials that `Bun.S3Client` cannot resolve natively.
+- Bun built-ins only: no Node-only equivalents or extra deps for what Bun provides. Approved runtime exceptions are `@aws-sdk/credential-providers` for AWS provider chain / IRSA credential resolution and `@google-cloud/storage` for GCS access.
+- Storage backends are filesystem, S3-compatible object storage, and GCS. Keep config and docs in sync when changing them.
 - Docs travel with code: a change to behavior, the HTTP API, env vars, or config updates the matching docs surface in the same commit (see `AGENTS.md`).
 - Full docs: https://remotecache.dev/
 

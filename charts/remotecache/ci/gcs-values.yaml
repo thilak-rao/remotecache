@@ -1,0 +1,12 @@
+adminToken: ci-admin-token-0123456789abcdef
+
+storage:
+  strategy: gcs
+
+gcs:
+  bucket: remotecache-ci-bucket
+  projectId: remotecache-ci
+
+persistence:
+  cache:
+    enabled: false

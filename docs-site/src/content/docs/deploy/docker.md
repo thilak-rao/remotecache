@@ -37,19 +37,21 @@ docker run -p 3000:3000 \
   ghcr.io/thilak-rao/remotecache:latest
 ```
 
-For S3 storage, omit the `./cache` volume and pass the S3 environment variables instead. The `./data` volume is still needed for the token database. See [Storage strategies](/guides/storage-strategies/) for details.
+For object storage, omit the `./cache` volume and pass the S3 or GCS environment variables instead. The `./data` volume is still needed for the token database. See [Storage strategies](/guides/storage-strategies/) for details.
 
 The server listens on `0.0.0.0:3000` by default. Set `BIND_ADDRESS` to change the interface — use `::` for IPv6 or dual-stack. On `docker stop` the server receives `SIGTERM`, stops accepting new requests, and drains in-flight requests before exiting. See [Configuration](/guides/configuration/) for every environment variable.
 
 ## Health checks
 
-`GET /health` returns `200 OK` with a plain text `OK` body and does not require a token. Use it for container and orchestrator liveness/readiness checks:
+`GET /health` returns `200 OK` with a plain text `OK` body and does not require a token. Use it for container and orchestrator liveness checks:
 
 ```sh
 curl -fsS http://localhost:3000/health
 ```
 
-It confirms the server process is running and accepting requests. It does not validate filesystem or S3 backend reachability.
+It confirms the server process is running and accepting requests. It does not validate token DB or storage backend reachability.
+
+Use `GET /ready` when a probe should also check dependency readiness. It is unauthenticated, returns `OK` only when SQLite token storage and the configured cache backend are ready, and returns a static `Not Ready` body on failure.
 
 ## Direct TLS
 

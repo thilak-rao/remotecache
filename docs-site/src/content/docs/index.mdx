@@ -1,6 +1,6 @@
 ---
 title: remotecache
-description: Own your Nx remote cache. A free, self-hosted, MIT-licensed Nx remote cache server on Bun — filesystem or S3 storage, token auth, one small container.
+description: Own your Nx remote cache. A free, self-hosted, MIT-licensed Nx remote cache server on Bun with filesystem, S3, or GCS storage.
 template: splash
 head:
   - tag: title
@@ -40,8 +40,8 @@ import { Card, CardGrid } from '@astrojs/starlight/components';
     `readonly` for untrusted CI, `full` for trusted pipelines. Untrusted PRs can't write, so they
     can't poison the cache. [See CVE-2025-36852](/security/cve-2025-36852/).
   </Card>
-  <Card title="Filesystem or S3" icon="open-book">
-    Local disk by default, or any S3-compatible bucket (AWS S3, MinIO).
+  <Card title="Filesystem, S3, or GCS" icon="open-book">
+    Local disk by default, S3-compatible object storage, or Google Cloud Storage.
   </Card>
   <Card title="One small Bun container" icon="seti:typescript">
     `Bun.serve` + `bun:sqlite`, with the server process running as `bun` in the GHCR image. [Deploy

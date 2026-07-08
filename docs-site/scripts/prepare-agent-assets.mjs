@@ -27,7 +27,7 @@ const index = {
       name: 'remotecache',
       type: 'skill-md',
       description:
-        'Use remotecache, a self-hosted Nx remote cache server with filesystem or S3 storage and bearer-token auth.',
+        'Use remotecache, a self-hosted Nx remote cache server with filesystem, S3, or GCS storage and bearer-token auth.',
       url: 'https://remotecache.dev/.well-known/agent-skills/remotecache/SKILL.md',
       digest: `sha256:${digest}`,
     },

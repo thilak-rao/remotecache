@@ -34,7 +34,7 @@ describe('startup validation e2e', () => {
         ...baseEnv(),
         ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
         PORT: '4014',
-        STORAGE_STRATEGY: 'gcs',
+        STORAGE_STRATEGY: 'azure',
         CACHE_DIR: join(dir, 'cache'),
         TOKENS_DB_PATH: join(dir, 'tokens.sqlite'),
       },
@@ -50,8 +50,30 @@ describe('startup validation e2e', () => {
     expect(stderr).toContain('Unknown STORAGE_STRATEGY');
   });
 
-  it('refuses to start when eviction is configured with the s3 strategy', async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'rc-startup-eviction-'));
+  it('refuses to start when gcs storage has no bucket', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rc-startup-gcs-'));
+    const proc = Bun.spawn(['bun', 'src/main.ts'], {
+      env: {
+        ...baseEnv(),
+        ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
+        PORT: '4014',
+        STORAGE_STRATEGY: 'gcs',
+        TOKENS_DB_PATH: join(dir, 'tokens.sqlite'),
+      },
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
+    const exitCode = await proc.exited;
+    const stderr = await new Response(proc.stderr).text();
+    rmSync(dir, { recursive: true, force: true });
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain('GCS_BUCKET');
+  });
+
+  it('refuses to start when eviction is configured with s3 storage', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rc-startup-eviction-s3-'));
     const proc = Bun.spawn(['bun', 'src/main.ts'], {
       env: {
         ...baseEnv(),
@@ -72,6 +94,34 @@ describe('startup validation e2e', () => {
     rmSync(dir, { recursive: true, force: true });
 
     expect(exitCode).toBe(1);
+    expect(stderr).toContain('apply only to STORAGE_STRATEGY=filesystem');
+    expect(stderr).toContain('object storage');
+    expect(stderr).toContain('lifecycle rules');
+  });
+
+  it('refuses to start when eviction is configured with gcs storage', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rc-startup-eviction-gcs-'));
+    const proc = Bun.spawn(['bun', 'src/main.ts'], {
+      env: {
+        ...baseEnv(),
+        ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
+        PORT: '4014',
+        STORAGE_STRATEGY: 'gcs',
+        GCS_BUCKET: 'irrelevant',
+        CACHE_MAX_BYTES: '1000000',
+        TOKENS_DB_PATH: join(dir, 'tokens.sqlite'),
+      },
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
+    const exitCode = await proc.exited;
+    const stderr = await new Response(proc.stderr).text();
+    rmSync(dir, { recursive: true, force: true });
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain('apply only to STORAGE_STRATEGY=filesystem');
+    expect(stderr).toContain('object storage');
     expect(stderr).toContain('lifecycle rules');
   });
 });

@@ -79,6 +79,11 @@ export class TokenStorage {
     return error;
   }
 
+  checkReady(): Promise<void> {
+    this.#db.query('SELECT 1').get();
+    return Promise.resolve();
+  }
+
   addToken({ id, value, permission }: TokenRecord): DatabaseOperation<AddTokenError> {
     const insertStatement = this.#db.query(
       'INSERT INTO tokens (id, value, permission) VALUES ($id, $value, $permission)',
