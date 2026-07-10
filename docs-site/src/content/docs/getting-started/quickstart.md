@@ -1,6 +1,9 @@
 ---
 title: Quickstart
 description: 'Get a self-hosted Nx remote cache running and wired into Nx in five minutes: start the server, create a token, point Nx at it.'
+head:
+  - tag: title
+    content: 'Set Up a Self-Hosted Nx Remote Cache in 5 Minutes | remotecache'
 ---
 
 Get a self-hosted Nx remote cache running in under five minutes — start the server, create an access token, point Nx at it.
