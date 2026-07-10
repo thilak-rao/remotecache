@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightOpenAPI, { openAPISidebarGroups } from 'starlight-openapi';
 import starlightLinksValidator from 'starlight-links-validator';
+import starlightLlmsTxt from 'starlight-llms-txt';
 
 // https://astro.build/config
 export default defineConfig({
@@ -56,6 +57,20 @@ export default defineConfig({
             sidebar: { label: 'API Reference' },
           },
         ]),
+        starlightLlmsTxt({
+          projectName: 'remotecache',
+          description:
+            'A free, self-hosted, MIT-licensed Nx remote cache server on the Bun runtime with filesystem, S3, or GCS storage and readonly/full bearer-token auth.',
+          promote: ['index*', 'getting-started/**'],
+          optionalLinks: [
+            {
+              label: 'OpenAPI document',
+              url: 'https://remotecache.dev/openapi.json',
+              description:
+                'Machine-readable HTTP API spec with exact endpoints, status codes, and request/response shapes',
+            },
+          ],
+        }),
       ],
       sidebar: [
         {
