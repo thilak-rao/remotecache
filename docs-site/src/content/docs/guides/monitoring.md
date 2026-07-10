@@ -1,6 +1,6 @@
 ---
 title: 'Monitoring'
-description: 'Prometheus metrics for the Nx remote cache server: hit rate, readonly write rejections, eviction, and example alert rules.'
+description: 'Prometheus metrics for the Nx remote cache server: hit rate, forbidden writes, eviction, and example alert rules.'
 head:
   - tag: title
     content: 'Monitoring the Nx Remote Cache with Prometheus | remotecache'
@@ -20,7 +20,7 @@ The server exposes Prometheus metrics at `GET /metrics` in the text exposition f
 
 Two results deserve a note:
 
-- `PUT` `forbidden` counts `readonly` tokens rejected from writing — the write-trust boundary firing. A steady nonzero rate means a job holds the wrong token (see [CI recipes](/guides/ci-recipes/)) or someone is probing.
+- `PUT` `forbidden` counts every write rejected with `403`. This includes missing or invalid bearer tokens and valid `readonly` tokens; the label does not identify which case occurred. A steady nonzero rate means a job has an authentication or permission problem (see [CI recipes](/guides/ci-recipes/)) or someone is probing.
 - `PUT` `immutable` counts attempts to overwrite an existing entry (`409`). Occasional occurrences are normal racing builds.
 
 ## Scraping
@@ -71,11 +71,11 @@ groups:
         annotations:
           summary: 'Cache hit rate below 50% — check for hash instability or recent eviction'
 
-      - alert: NxCacheReadonlyWriteAttempts
+      - alert: NxCacheForbiddenWriteAttempts
         expr: increase(nx_cache_requests_total{method="PUT",result="forbidden"}[15m]) > 0
         labels: { severity: warning }
         annotations:
-          summary: 'A readonly token attempted a cache write — misconfigured job or probe'
+          summary: 'Cache writes were forbidden: check for missing, invalid, or readonly tokens'
 
       - alert: NxCacheNearCapacity
         # Replace 50000000000 with 90% of your CACHE_MAX_BYTES value; the cap
@@ -91,4 +91,4 @@ Tune the hit-rate threshold to your baseline; a monorepo with many long-lived br
 
 ## Readiness
 
-Use token-free `GET /health` for liveness and `GET /ready` for dependency readiness (token DB plus storage backend). `/ready` returning `503 Not Ready` while `/health` is fine points at storage or the token database — see [Troubleshooting](/guides/troubleshooting/).
+Use token-free `GET /health` for liveness and `GET /ready` for dependency readiness. `/ready` asks the existing SQLite connection to run `SELECT 1` and probes the configured storage backend; filesystem storage probes `CACHE_DIR`. A `503 Not Ready` response means one of these runtime checks failed. Token database creation or open errors normally stop the server during startup. See [Troubleshooting](/guides/troubleshooting/).

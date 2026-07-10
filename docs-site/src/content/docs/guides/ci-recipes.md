@@ -31,10 +31,6 @@ on:
     branches: [main]
   pull_request:
 
-env:
-  NX_SELF_HOSTED_REMOTE_CACHE_SERVER: https://cache.example.com
-  NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN: ${{ github.ref == 'refs/heads/main' && secrets.NX_CACHE_FULL_TOKEN || secrets.NX_CACHE_READONLY_TOKEN }}
-
 jobs:
   main:
     runs-on: ubuntu-latest
@@ -46,12 +42,20 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      - run: npx nx affected -t lint test build
+      - name: Run Nx
+        env:
+          NX_CACHE_TOKEN: ${{ github.ref == 'refs/heads/main' && secrets.NX_CACHE_FULL_TOKEN || secrets.NX_CACHE_READONLY_TOKEN }}
+        run: |
+          if [ -n "$NX_CACHE_TOKEN" ]; then
+            export NX_SELF_HOSTED_REMOTE_CACHE_SERVER="https://cache.example.com"
+            export NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN="$NX_CACHE_TOKEN"
+          fi
+          npx nx affected -t lint test build
 ```
 
 ### Fork pull requests
 
-GitHub does not pass secrets to workflows triggered by a `pull_request` from a fork. Both token variables resolve to empty strings there, Nx skips the remote cache, and the job builds against its local cache only. That default is the safe one: fork PRs get no cache credentials of any kind.
+GitHub does not pass secrets to workflows triggered by a `pull_request` from a fork. `NX_CACHE_TOKEN` is empty there, so the workflow exports neither Nx remote-cache variable and Nx uses only its local cache. Fork PRs get no cache credentials of any kind.
 
 Do not work around this with `pull_request_target` to hand tokens to fork code. That event runs with secret access against untrusted head commits, and chained with cache poisoning it is exactly the attack pattern seen in the May 2026 TanStack compromise.
 
@@ -66,17 +70,18 @@ GitLab's protected variables map onto the token split directly. Define two CI/CD
 default:
   image: node:22
 
-variables:
-  NX_SELF_HOSTED_REMOTE_CACHE_SERVER: 'https://cache.example.com'
-
 .nx-cache: &nx-cache
   before_script:
     - npm ci
     - |
       if [ -n "$NX_CACHE_FULL_TOKEN" ]; then
-        export NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN="$NX_CACHE_FULL_TOKEN"
+        NX_CACHE_TOKEN="$NX_CACHE_FULL_TOKEN"
       else
-        export NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN="$NX_CACHE_READONLY_TOKEN"
+        NX_CACHE_TOKEN="$NX_CACHE_READONLY_TOKEN"
+      fi
+      if [ -n "$NX_CACHE_TOKEN" ]; then
+        export NX_SELF_HOSTED_REMOTE_CACHE_SERVER="https://cache.example.com"
+        export NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN="$NX_CACHE_TOKEN"
       fi
 
 build:
@@ -85,7 +90,7 @@ build:
     - npx nx affected -t lint test build
 ```
 
-On a protected branch both variables exist and the job exports the `full` token; on any other branch only the readonly one is set. Pipelines for merge requests from forks receive no CI/CD variables by default, which degrades to the same safe cache-less behavior as GitHub.
+On a protected branch both variables exist and the job exports the `full` token; on any other branch only the readonly one is set. Pipelines for merge requests from forks receive no CI/CD variables by default, so the job exports neither Nx remote-cache variable and uses only its local cache.
 
 ## Any other CI
 

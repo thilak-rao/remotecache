@@ -67,7 +67,7 @@ export default defineConfig({
             },
           ],
           details:
-            'Every documentation page is also available as raw Markdown by appending `.md` to its URL path, for example <https://remotecache.dev/guides/configuration.md>.',
+            'Pages from the docs content collection are also available as raw Markdown by appending `.md` to their URL path, for example <https://remotecache.dev/guides/configuration.md>. Generated API pages do not have Markdown siblings; use <https://remotecache.dev/openapi.json> for machine-readable API details.',
         }),
       ],
       sidebar: [

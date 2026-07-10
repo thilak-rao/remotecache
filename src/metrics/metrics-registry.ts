@@ -11,8 +11,8 @@ const SEEDED_RESULTS: Record<CacheMethod, readonly string[]> = {
 
 /**
  * Map an HTTP status from a `/v1/cache/:hash` handler to a stable Prometheus
- * label. GET 200/404 drive the cache hit-rate; PUT 403 is the CREEP gate (a
- * read-only token rejected from writing).
+ * label. GET 200/404 drive the cache hit rate. The `forbidden` result groups
+ * every 403 and does not distinguish missing, invalid, or insufficient tokens.
  */
 export function cacheResultLabel(method: CacheMethod, status: number): string {
   if (method === 'GET') {
