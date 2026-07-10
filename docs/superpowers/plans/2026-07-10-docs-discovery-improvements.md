@@ -26,10 +26,12 @@
 ### Task 1: llms.txt generation
 
 **Files:**
+
 - Modify: `docs-site/package.json` (via `bun add`)
 - Modify: `docs-site/astro.config.mjs`
 
 **Interfaces:**
+
 - Produces: build outputs `dist/llms.txt`, `dist/llms-full.txt`, `dist/llms-small.txt`. Task 8 links to `https://remotecache.dev/llms.txt`.
 
 - [ ] **Step 1: Install the plugin**
@@ -92,10 +94,12 @@ git commit -m "feat(site): generate llms.txt for ai agents"
 ### Task 2: Per-page raw markdown endpoint
 
 **Files:**
+
 - Create: `docs-site/src/pages/[...slug].md.ts`
 - Modify: `docs-site/astro.config.mjs` (add `details` to the Task 1 plugin config)
 
 **Interfaces:**
+
 - Consumes: the `docs` content collection (`getCollection('docs')`); entries expose `id` (slug, `''` or `'index'` for the homepage) and `body` (raw markdown without frontmatter).
 - Produces: every docs page served as raw markdown at `<page-path>.md` (e.g. `/guides/configuration.md`, `/index.md`). The id normalization convention `entry.id || 'index'` is shared with Task 3.
 
@@ -160,12 +164,14 @@ git commit -m "feat(site): serve per-page raw markdown for agents"
 ### Task 3: Per-page OG images
 
 **Files:**
+
 - Modify: `docs-site/package.json` (via `bun add`)
 - Create: `docs-site/src/pages/og/[...route].ts`
 - Create: `docs-site/src/route-data.ts`
 - Modify: `docs-site/astro.config.mjs` (register `routeMiddleware`, remove global `og:image`/`twitter:image` head entries)
 
 **Interfaces:**
+
 - Consumes: the `docs` collection and the `entry.id || 'index'` convention from Task 2.
 - Produces: `dist/og/<id>.png` per docs page (homepage at `/og/index.png`); every Starlight page's `<head>` carries `og:image` + `twitter:image` pointing at its generated image, with `/og.png` as the fallback for pages outside the collection (the starlight-openapi API pages). `public/og.png` stays in place as that fallback.
 
@@ -270,11 +276,13 @@ git commit -m "feat(site): generate per-page open graph images"
 ### Task 4: SEO title tweaks and quickstart CTA
 
 **Files:**
+
 - Modify: `docs-site/src/content/docs/getting-started/quickstart.md:1-4` (frontmatter)
 - Modify: `docs-site/src/content/docs/compare/nx-cloud.md:4-6` (head title)
 - Modify: `docs-site/src/content/docs/security/cve-2025-36852.md:74-79` (Your options list)
 
 **Interfaces:**
+
 - Produces: nothing consumed by later tasks.
 
 - [ ] **Step 1: Tune the quickstart title**
@@ -305,15 +313,15 @@ head:
 In `compare/nx-cloud.md`, replace:
 
 ```yaml
-  - tag: title
-    content: 'Self-Hosted Nx Remote Cache vs Nx Cloud: Honest Comparison'
+- tag: title
+  content: 'Self-Hosted Nx Remote Cache vs Nx Cloud: Honest Comparison'
 ```
 
 with:
 
 ```yaml
-  - tag: title
-    content: 'Nx Cloud Alternative? Self-Hosted Nx Remote Cache vs Nx Cloud'
+- tag: title
+  content: 'Nx Cloud Alternative? Self-Hosted Nx Remote Cache vs Nx Cloud'
 ```
 
 (`why.md` needs no link change: it already links the quickstart from both "Your options" and "Get started", which satisfies the spec's internal-linking pass for that page.)
@@ -350,12 +358,14 @@ git commit -m "docs(site): tune seo titles and add quickstart cta to cve page"
 ### Task 5: CI recipes page
 
 **Files:**
+
 - Create: `docs-site/src/content/docs/guides/ci-recipes.md`
 - Modify: `docs-site/astro.config.mjs` (sidebar)
 - Modify: `docs-site/src/content/docs/getting-started/quickstart.md` (Next steps)
 - Modify: `docs-site/src/content/docs/guides/security.md` (trust boundaries cross-link)
 
 **Interfaces:**
+
 - Produces: page at `/guides/ci-recipes/`. Task 6 links to it.
 
 - [ ] **Step 1: Create the page**
@@ -512,10 +522,12 @@ git commit -m "docs(site): add ci recipes guide for github actions and gitlab"
 ### Task 6: Troubleshooting page with FAQPage JSON-LD
 
 **Files:**
+
 - Create: `docs-site/src/content/docs/guides/troubleshooting.md`
 - Modify: `docs-site/astro.config.mjs` (sidebar)
 
 **Interfaces:**
+
 - Consumes: `/guides/ci-recipes/` from Task 5 (one link).
 - Produces: page at `/guides/troubleshooting/`.
 
@@ -643,11 +655,13 @@ git commit -m "docs(site): add troubleshooting guide with faq structured data"
 ### Task 7: Monitoring page (cut line — drop first if the cycle runs long)
 
 **Files:**
+
 - Create: `docs-site/src/content/docs/guides/monitoring.md`
 - Modify: `docs-site/astro.config.mjs` (sidebar)
 - Modify: `docs-site/src/content/docs/deploy/docker.md` (link from its Monitoring section)
 
 **Interfaces:**
+
 - Produces: page at `/guides/monitoring/`.
 
 - [ ] **Step 1: Create the page**
@@ -667,13 +681,13 @@ The server exposes Prometheus metrics at `GET /metrics` in the text exposition f
 
 ## Metrics
 
-| Metric | Type | Meaning |
-| --- | --- | --- |
+| Metric                                   | Type    | Meaning                                                                                                                                                                                          |
+| ---------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `nx_cache_requests_total{method,result}` | counter | Cache requests by method and outcome. `GET` results: `hit`, `miss`, `forbidden`, `bad_request`, `error`. `PUT` results: `stored`, `forbidden`, `immutable`, `too_large`, `bad_request`, `error`. |
-| `nx_cache_uploaded_bytes_total` | counter | Bytes accepted by successful uploads. |
-| `nx_cache_evicted_entries_total` | counter | Entries deleted by the eviction sweeper (filesystem strategy). |
-| `nx_cache_evicted_bytes_total` | counter | Bytes reclaimed by the eviction sweeper. |
-| `nx_cache_size_bytes` | gauge | Committed cache size as of the last eviction sweep. Only updates when eviction is enabled. |
+| `nx_cache_uploaded_bytes_total`          | counter | Bytes accepted by successful uploads.                                                                                                                                                            |
+| `nx_cache_evicted_entries_total`         | counter | Entries deleted by the eviction sweeper (filesystem strategy).                                                                                                                                   |
+| `nx_cache_evicted_bytes_total`           | counter | Bytes reclaimed by the eviction sweeper.                                                                                                                                                         |
+| `nx_cache_size_bytes`                    | gauge   | Committed cache size as of the last eviction sweep. Only updates when eviction is enabled.                                                                                                       |
 
 Two results deserve a note:
 
@@ -786,11 +800,13 @@ git commit -m "docs(site): add prometheus monitoring guide"
 ### Task 8: SKILL.md refresh, auth.md, README
 
 **Files:**
+
 - Modify: `docs-site/public/.well-known/agent-skills/remotecache/SKILL.md`
 - Modify: `docs-site/public/auth.md`
 - Modify: `README.md` (repo root)
 
 **Interfaces:**
+
 - Consumes: `/llms.txt` (Task 1) and per-page `.md` (Task 2) must exist, or the links below are false claims.
 
 - [ ] **Step 1: Invoke prompt-wizard**

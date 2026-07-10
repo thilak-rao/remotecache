@@ -63,12 +63,12 @@ Generate a branded OG image per docs page at build (page title + logo on a templ
 
 HTML titles target real queries; sidebar labels stay short.
 
-| Page | Target query |
-| --- | --- |
-| `compare/nx-cloud` | "Nx Cloud alternative" |
-| `why` | "Nx Powerpack cache deprecated" / "@nx/s3-cache deprecated" |
-| homepage | "self-hosted Nx remote cache" |
-| `getting-started/quickstart` | "set up Nx remote cache" |
+| Page                         | Target query                                                |
+| ---------------------------- | ----------------------------------------------------------- |
+| `compare/nx-cloud`           | "Nx Cloud alternative"                                      |
+| `why`                        | "Nx Powerpack cache deprecated" / "@nx/s3-cache deprecated" |
+| homepage                     | "self-hosted Nx remote cache"                               |
+| `getting-started/quickstart` | "set up Nx remote cache"                                    |
 
 ### Internal linking pass
 
