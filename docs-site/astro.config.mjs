@@ -70,6 +70,8 @@ export default defineConfig({
                 'Machine-readable HTTP API spec with exact endpoints, status codes, and request/response shapes',
             },
           ],
+          details:
+            'Every documentation page is also available as raw Markdown by appending `.md` to its URL path, for example <https://remotecache.dev/guides/configuration.md>.',
         }),
       ],
       sidebar: [
