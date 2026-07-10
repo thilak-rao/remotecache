@@ -87,6 +87,8 @@ scrape_configs:
       - targets: ['nx-cache:3000']
 ```
 
+For PromQL queries and example alert rules, see the [Monitoring guide](/guides/monitoring/).
+
 ## Next steps
 
 See [Configuration](/guides/configuration/) for all environment variables, and the [Security](/guides/security/) guide for token scoping and the append-only trust model before exposing the server to CI traffic.

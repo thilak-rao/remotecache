@@ -100,6 +100,7 @@ export default defineConfig({
             { label: 'Security model', slug: 'guides/security' },
             { label: 'CI recipes', slug: 'guides/ci-recipes' },
             { label: 'Troubleshooting', slug: 'guides/troubleshooting' },
+            { label: 'Monitoring', slug: 'guides/monitoring' },
             { label: 'Migrate from @nx/s3-cache', slug: 'guides/migrate-from-nx-s3-cache' },
           ],
         },
