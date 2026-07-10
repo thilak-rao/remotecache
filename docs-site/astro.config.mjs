@@ -98,6 +98,7 @@ export default defineConfig({
             { label: 'Storage strategies', slug: 'guides/storage-strategies' },
             { label: 'Token & admin API', slug: 'guides/tokens' },
             { label: 'Security model', slug: 'guides/security' },
+            { label: 'CI recipes', slug: 'guides/ci-recipes' },
             { label: 'Migrate from @nx/s3-cache', slug: 'guides/migrate-from-nx-s3-cache' },
           ],
         },

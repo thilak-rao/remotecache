@@ -54,6 +54,7 @@ Run Nx as usual (`nx build`, `nx test`, etc.) and it will use the cache.
 ## Next steps
 
 - [Deploy](/deploy/docker/) — run it as a container, on Kubernetes, or as a standalone binary, with health checks and TLS.
+- [CI recipes](/guides/ci-recipes/) — GitHub Actions and GitLab CI with `readonly` tokens for untrusted jobs.
 - [Why self-host?](/why/) — the case for running your own Nx remote cache instead of Nx Cloud.
 - [API Reference](/api/) — full HTTP API details, status codes, and request/response shapes.
 - [Configuration](/guides/configuration/) — all environment variables, object storage setup, and production tips.
