@@ -19,6 +19,7 @@ export default defineConfig({
         alt: 'remotecache',
       },
       favicon: '/favicon.png',
+      routeMiddleware: './src/route-data.ts',
       social: [
         {
           icon: 'github',
@@ -28,12 +29,7 @@ export default defineConfig({
       ],
       head: [
         { tag: 'link', attrs: { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' } },
-        { tag: 'meta', attrs: { property: 'og:image', content: 'https://remotecache.dev/og.png' } },
         { tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
-        {
-          tag: 'meta',
-          attrs: { name: 'twitter:image', content: 'https://remotecache.dev/og.png' },
-        },
         {
           tag: 'script',
           attrs: {
