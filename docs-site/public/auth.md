@@ -21,3 +21,4 @@ Token administration uses the `ADMIN_TOKEN` configured on the server. The admin 
 
 The API reference is at https://remotecache.dev/api/
 The OpenAPI document is at https://remotecache.dev/openapi.json
+The docs index for agents is at https://remotecache.dev/llms.txt
