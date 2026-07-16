@@ -87,7 +87,7 @@ In priority order. Both guides land in the sidebar and flow into llms.txt automa
 Targets "nx remote cache github actions" and neighbors. Content:
 
 - GitHub Actions workflow wiring `NX_SELF_HOSTED_REMOTE_CACHE_SERVER` + token secrets
-- The fork-PR pattern: `readonly` token on `pull_request`, `full` token on `main`. This is the project's write-trust boundary made concrete
+- The fork-PR pattern: a readonly repository secret on `pull_request`, plus a full token in an `nx-cache-write` environment restricted to `main`. The environment restriction is the write-trust boundary
 - GitLab CI equivalent
 - Short generic-CI section
 

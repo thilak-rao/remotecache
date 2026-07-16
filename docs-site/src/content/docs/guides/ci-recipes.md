@@ -22,7 +22,14 @@ curl -sS -X POST -H "Authorization: Bearer ${ADMIN_TOKEN}" -H "Content-Type: app
 
 ## GitHub Actions
 
-Store both token values as repository secrets (`NX_CACHE_FULL_TOKEN`, `NX_CACHE_READONLY_TOKEN`). The workflow picks the token by branch: `main` gets `full`, everything else gets `readonly`.
+Configure the credentials like this:
+
+- Store `NX_CACHE_READONLY_TOKEN` as a repository secret.
+- Create a GitHub environment named `nx-cache-write`.
+- In the environment's deployment branches and tags settings, choose selected branches and tags and allow only `main`.
+- Store `NX_CACHE_FULL_TOKEN` as an environment secret in `nx-cache-write`, never as a repository secret.
+
+Selecting between repository secrets with an expression does not restrict access. [Repository secrets are available to every workflow in the repository](https://docs.github.com/en/code-security/reference/secret-security/secret-types), and a same-repository pull request controls its workflow file. It can change the workflow to reference `NX_CACHE_FULL_TOKEN` directly. The [`main` deployment branch restriction](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments#deployment-branches-and-tags) on `nx-cache-write` is the access-control boundary.
 
 ```yaml
 name: CI
@@ -32,7 +39,8 @@ on:
   pull_request:
 
 jobs:
-  main:
+  pull-request:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +52,29 @@ jobs:
       - run: npm ci
       - name: Run Nx
         env:
-          NX_CACHE_TOKEN: ${{ github.ref == 'refs/heads/main' && secrets.NX_CACHE_FULL_TOKEN || secrets.NX_CACHE_READONLY_TOKEN }}
+          NX_CACHE_TOKEN: ${{ secrets.NX_CACHE_READONLY_TOKEN }}
+        run: |
+          if [ -n "$NX_CACHE_TOKEN" ]; then
+            export NX_SELF_HOSTED_REMOTE_CACHE_SERVER="https://cache.example.com"
+            export NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN="$NX_CACHE_TOKEN"
+          fi
+          npx nx affected -t lint test build
+
+  main:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: nx-cache-write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Run Nx
+        env:
+          NX_CACHE_TOKEN: ${{ secrets.NX_CACHE_FULL_TOKEN }}
         run: |
           if [ -n "$NX_CACHE_TOKEN" ]; then
             export NX_SELF_HOSTED_REMOTE_CACHE_SERVER="https://cache.example.com"
@@ -55,7 +85,9 @@ jobs:
 
 ### Fork pull requests
 
-GitHub does not pass secrets to workflows triggered by a `pull_request` from a fork. `NX_CACHE_TOKEN` is empty there, so the workflow exports neither Nx remote-cache variable and Nx uses only its local cache. Fork PRs get no cache credentials of any kind.
+By default, GitHub does not pass repository secrets to workflows triggered by a `pull_request` from a fork, and Dependabot workflows cannot access Actions secrets. `NX_CACHE_TOKEN` is empty in both cases, so the job exports neither Nx remote-cache variable and Nx uses only its local cache.
+
+For private repositories, leave [**Send secrets to workflows from pull requests**](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#enabling-workflows-for-forks-of-private-repositories) disabled. If you enable it, fork pull requests receive the readonly repository token. The `main` branch restriction on `nx-cache-write` still blocks access to the full token.
 
 Do not work around this with `pull_request_target` to hand tokens to fork code. That event runs with secret access against untrusted head commits, and chained with cache poisoning it is exactly the attack pattern seen in the May 2026 TanStack compromise.
 
