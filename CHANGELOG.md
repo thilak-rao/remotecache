@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.1.0](https://github.com/thilak-rao/remotecache/compare/v3.0.0...v3.1.0) (2026-07-20)
+
+
+### Features
+
+* **analytics:** use remotecache tracker alias ([89725d6](https://github.com/thilak-rao/remotecache/commit/89725d677c8d2d7d7f26242baab70b9d6ab07787))
+* **deploy:** add paas deployment templates ([b5da734](https://github.com/thilak-rao/remotecache/commit/b5da7342dbe18a3946a4d61513aa24683ee88c07))
+* **storage:** add gcs storage and readiness probes ([06594ee](https://github.com/thilak-rao/remotecache/commit/06594ee5f3baaefd744065c75ab1ee22665a2111))
+
 ## [3.0.0](https://github.com/thilak-rao/remotecache/compare/v2.1.0...v3.0.0) (2026-07-06)
 
 
