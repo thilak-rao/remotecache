@@ -41,7 +41,7 @@ The self-hosted Nx remote cache server reads all configuration from environment 
 
 `GET /health` has no configuration. It returns `OK` when the process is accepting requests. Use it for liveness only.
 
-`GET /ready` is unauthenticated and checks SQLite token storage plus the configured cache backend. It returns a static `Not Ready` response on failure; dependency details go to the logs.
+`GET /ready` is unauthenticated. It asks the existing SQLite connection to run `SELECT 1` and probes the configured cache backend. With filesystem storage, the runtime probe checks `CACHE_DIR` (default `./cache`). If SQLite cannot create or open `TOKENS_DB_PATH`, the server normally stops during startup instead. Readiness failures return a static `Not Ready` response; the logs contain the specific error.
 
 For production, `TOKENS_DB_PATH` and `CACHE_DIR` (or the object storage bucket) need to survive restarts. Mount a persistent volume for `./data` and `./cache`, or point these variables at a path that persists.
 

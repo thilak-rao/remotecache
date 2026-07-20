@@ -59,7 +59,7 @@
     },
     "/metrics": {
       "get": {
-        "description": "Prometheus metrics in the text exposition format (version 0.0.4). Unauthenticated and meant to be scraped over a private network; restrict it to your metrics collector and never expose it publicly. Reports cache request counters by method and result (the GET hit/miss split is the cache hit-rate, and PUT 'forbidden' counts read-only tokens rejected from writing), total bytes accepted by successful uploads, filesystem eviction counters (nx_cache_evicted_entries_total and nx_cache_evicted_bytes_total), and the latest filesystem cache size gauge (nx_cache_size_bytes).",
+        "description": "Prometheus metrics in the text exposition format (version 0.0.4). Unauthenticated and meant to be scraped over a private network; restrict it to your metrics collector and never expose it publicly. Reports cache request counters by method and result (the GET hit/miss split is the cache hit-rate, and PUT 'forbidden' includes writes rejected for missing, invalid, or readonly tokens), total bytes accepted by successful uploads, filesystem eviction counters (nx_cache_evicted_entries_total and nx_cache_evicted_bytes_total), and the latest filesystem cache size gauge (nx_cache_size_bytes).",
         "operationId": "getMetrics",
         "security": [],
         "responses": {

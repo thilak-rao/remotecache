@@ -3,6 +3,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import starlightOpenAPI, { openAPISidebarGroups } from 'starlight-openapi';
 import starlightLinksValidator from 'starlight-links-validator';
+import starlightLlmsTxt from 'starlight-llms-txt';
 
 // https://astro.build/config
 export default defineConfig({
@@ -18,6 +19,7 @@ export default defineConfig({
         alt: 'remotecache',
       },
       favicon: '/favicon.png',
+      routeMiddleware: './src/route-data.ts',
       social: [
         {
           icon: 'github',
@@ -27,12 +29,7 @@ export default defineConfig({
       ],
       head: [
         { tag: 'link', attrs: { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' } },
-        { tag: 'meta', attrs: { property: 'og:image', content: 'https://remotecache.dev/og.png' } },
         { tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
-        {
-          tag: 'meta',
-          attrs: { name: 'twitter:image', content: 'https://remotecache.dev/og.png' },
-        },
         {
           tag: 'script',
           attrs: {
@@ -56,6 +53,22 @@ export default defineConfig({
             sidebar: { label: 'API Reference' },
           },
         ]),
+        starlightLlmsTxt({
+          projectName: 'remotecache',
+          description:
+            'A free, self-hosted, MIT-licensed Nx remote cache server on the Bun runtime with filesystem, S3, or GCS storage and readonly/full bearer-token auth.',
+          promote: ['index*', 'getting-started/**'],
+          optionalLinks: [
+            {
+              label: 'OpenAPI document',
+              url: 'https://remotecache.dev/openapi.json',
+              description:
+                'Machine-readable HTTP API spec with exact endpoints, status codes, and request/response shapes',
+            },
+          ],
+          details:
+            'Pages from the docs content collection are also available as raw Markdown by appending `.md` to their URL path, for example <https://remotecache.dev/guides/configuration.md>. Generated API pages do not have Markdown siblings; use <https://remotecache.dev/openapi.json> for machine-readable API details.',
+        }),
       ],
       sidebar: [
         {
@@ -85,6 +98,9 @@ export default defineConfig({
             { label: 'Storage strategies', slug: 'guides/storage-strategies' },
             { label: 'Token & admin API', slug: 'guides/tokens' },
             { label: 'Security model', slug: 'guides/security' },
+            { label: 'CI recipes', slug: 'guides/ci-recipes' },
+            { label: 'Troubleshooting', slug: 'guides/troubleshooting' },
+            { label: 'Monitoring', slug: 'guides/monitoring' },
             { label: 'Migrate from @nx/s3-cache', slug: 'guides/migrate-from-nx-s3-cache' },
           ],
         },

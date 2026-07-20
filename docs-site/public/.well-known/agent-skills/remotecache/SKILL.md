@@ -11,8 +11,12 @@ Use this skill when an agent needs to understand, configure, deploy, or integrat
 
 remotecache is a self-hosted Nx remote cache server. It implements the Nx custom remote cache HTTP API and can store cache artifacts on local filesystem storage, S3-compatible object storage, or Google Cloud Storage.
 
+Read `llms.txt` first. Append `.md` to a docs content page URL for raw Markdown. Generated API pages do not have `.md` routes; use https://remotecache.dev/openapi.json for API details.
+
 Primary docs:
 
+- Docs index for agents: https://remotecache.dev/llms.txt
+- Full docs in one file: https://remotecache.dev/llms-full.txt
 - Quickstart: https://remotecache.dev/getting-started/quickstart/
 - API reference: https://remotecache.dev/api/
 - OpenAPI document: https://remotecache.dev/openapi.json

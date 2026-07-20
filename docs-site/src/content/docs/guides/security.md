@@ -47,6 +47,8 @@ This server's `readonly`/`full` token split is the primitive for containing that
 `tokenPermission === 'full'` is the only path that can write. Untrusted runners can read the cache
 but cannot write to it, so they cannot place a poisoned artifact.
 
+[CI recipes](/guides/ci-recipes/) shows this split wired into GitHub Actions and GitLab CI.
+
 :::caution[Honest limits]
 **Append-only is first-writer-wins.** If you hand a `full` token to an untrusted context — fork PR
 jobs, external contributor workflows — that context can still poison the cache before any trusted

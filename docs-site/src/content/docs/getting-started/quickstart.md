@@ -1,6 +1,9 @@
 ---
 title: Quickstart
 description: 'Get a self-hosted Nx remote cache running and wired into Nx in five minutes: start the server, create a token, point Nx at it.'
+head:
+  - tag: title
+    content: 'Set Up a Self-Hosted Nx Remote Cache in 5 Minutes | remotecache'
 ---
 
 Get a self-hosted Nx remote cache running in under five minutes — start the server, create an access token, point Nx at it.
@@ -51,6 +54,7 @@ Run Nx as usual (`nx build`, `nx test`, etc.) and it will use the cache.
 ## Next steps
 
 - [Deploy](/deploy/docker/) — run it as a container, on Kubernetes, or as a standalone binary, with health checks and TLS.
+- [CI recipes](/guides/ci-recipes/) — GitHub Actions and GitLab CI with `readonly` tokens for untrusted jobs.
 - [Why self-host?](/why/) — the case for running your own Nx remote cache instead of Nx Cloud.
 - [API Reference](/api/) — full HTTP API details, status codes, and request/response shapes.
 - [Configuration](/guides/configuration/) — all environment variables, object storage setup, and production tips.

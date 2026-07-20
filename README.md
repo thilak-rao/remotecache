@@ -89,6 +89,7 @@ Repo-local starter configs are included for Railway (`railway.json`), Render (`r
 - [Configuration](https://remotecache.dev/guides/configuration/) — all environment variables
 - [Railway, Render, and Fly.io](https://remotecache.dev/deploy/paas/) — starter PaaS deploy templates
 - [API Reference](https://remotecache.dev/api/) — full HTTP API
+- [llms.txt](https://remotecache.dev/llms.txt) — agent-readable docs index; docs content pages have sibling `.md` routes, while API consumers should use [openapi.json](https://remotecache.dev/openapi.json)
 - [Security model](https://remotecache.dev/guides/security/) — token auth, hashing, permissions
 - [Contributing](https://remotecache.dev/contributing/) — how to contribute
 
