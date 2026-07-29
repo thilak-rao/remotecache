@@ -44,6 +44,8 @@ export class TokenStorage {
    * generated, so the format alone cannot tell them apart; `PRAGMA user_version`
    * is the durable marker that records whether this database has been migrated.
    * Existing tokens keep working because lookups hash the incoming value too.
+   * The table is rebuilt transactionally so a newly derived hash cannot collide
+   * with another row's still-plaintext primary-key value.
    */
   #migrateToHashedTokens() {
     const versionRow = this.#db.query('PRAGMA user_version').get() as {
@@ -51,18 +53,22 @@ export class TokenStorage {
     } | null;
     if ((versionRow?.user_version ?? 0) >= SCHEMA_VERSION) return;
 
-    const legacyValues = this.#db
-      .query<{ value: string }, Record<string, never>>('SELECT value FROM tokens')
-      .all({});
-    const update = this.#db.query('UPDATE tokens SET value = $hash WHERE value = $value');
+    const select = this.#db.query<TokenRecord, Record<string, never>>(
+      'SELECT id, value, permission FROM tokens',
+    );
+    const insert = this.#db.query(
+      'INSERT INTO tokens (id, value, permission) VALUES ($id, $value, $permission)',
+    );
 
-    const migrate = this.#db.transaction((rows: { value: string }[]) => {
-      for (const { value } of rows) {
-        update.run({ value, hash: hashToken(value) });
+    const migrate = this.#db.transaction(() => {
+      const tokens = select.all({});
+      this.#db.run('DELETE FROM tokens');
+      for (const { id, value, permission } of tokens) {
+        insert.run({ id, value: hashToken(value), permission });
       }
       this.#db.run(`PRAGMA user_version = ${SCHEMA_VERSION}`);
     });
-    migrate(legacyValues);
+    migrate();
   }
 
   #getAddTokenError({ code, message }: SQLiteError): AddTokenError {
@@ -79,8 +85,11 @@ export class TokenStorage {
     return error;
   }
 
+  /**
+   * Verifies the token table can serve the columns used by runtime operations.
+   */
   checkReady(): Promise<void> {
-    this.#db.query('SELECT 1').get();
+    this.#db.query('SELECT id, value, permission FROM tokens LIMIT 1').get();
     return Promise.resolve();
   }
 

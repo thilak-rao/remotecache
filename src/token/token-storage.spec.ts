@@ -92,10 +92,47 @@ describe('TokenStorage', () => {
     expect(readStoredValue(dbPath, 'legacy')).not.toBe('plaintext-token');
   });
 
+  it("migrates when one plaintext token equals another token's hash", async () => {
+    const dbPath = await freshDbPath();
+    const hashLookingToken = hashToken('a');
+    const legacy = new Database(dbPath, { create: true, strict: true });
+    legacy.run(`
+      CREATE TABLE IF NOT EXISTS tokens (
+        id TEXT NOT NULL UNIQUE,
+        value TEXT PRIMARY KEY,
+        permission TEXT NOT NULL CHECK (permission IN ('readonly', 'full'))
+      );
+    `);
+    const insert = legacy.query(
+      'INSERT INTO tokens (id, value, permission) VALUES ($id, $value, $permission)',
+    );
+    insert.run({ id: 'plain', value: 'a', permission: 'full' });
+    insert.run({ id: 'hash-looking', value: hashLookingToken, permission: 'readonly' });
+    legacy.close();
+
+    const storage = new TokenStorage(dbPath);
+
+    expect(storage.findToken('a')).toEqual({ id: 'plain', permission: 'full' });
+    expect(storage.findToken(hashLookingToken)).toEqual({
+      id: 'hash-looking',
+      permission: 'readonly',
+    });
+  });
+
   it('checks sqlite readiness with a simple query', async () => {
     const dbPath = await freshDbPath();
     const storage = new TokenStorage(dbPath);
 
     await expect(storage.checkReady()).resolves.toBeUndefined();
+  });
+
+  it('fails readiness when the tokens table is unusable', async () => {
+    const dbPath = await freshDbPath();
+    const storage = new TokenStorage(dbPath);
+    const corruptor = new Database(dbPath, { strict: true });
+    corruptor.run('DROP TABLE tokens');
+    corruptor.close();
+
+    expect(() => storage.checkReady()).toThrow();
   });
 });
