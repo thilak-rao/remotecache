@@ -8,31 +8,36 @@ async function runInvalidStartup(
   env: Record<string, string>,
 ): Promise<{ exitCode: number | null; stderr: string }> {
   const dir = mkdtempSync(join(tmpdir(), 'rc-startup-'));
-  const proc = Bun.spawn(['bun', 'src/main.ts'], {
-    env: {
-      ...baseEnv(),
-      ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
-      PORT: '4014',
-      CACHE_DIR: join(dir, 'cache'),
-      TOKENS_DB_PATH: join(dir, 'tokens.sqlite'),
-      ...env,
-    },
-    stdout: 'pipe',
-    stderr: 'pipe',
-  });
+  let proc: Bun.ReadableSubprocess | undefined;
 
   try {
+    proc = Bun.spawn(['bun', 'src/main.ts'], {
+      env: {
+        ...baseEnv(),
+        ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
+        PORT: '4014',
+        CACHE_DIR: join(dir, 'cache'),
+        TOKENS_DB_PATH: join(dir, 'tokens.sqlite'),
+        ...env,
+      },
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
     const exitCode = await Promise.race([proc.exited, Bun.sleep(1000).then(() => null)]);
     if (exitCode === null) proc.kill();
     await proc.exited;
     const stderr = await new Response(proc.stderr).text();
     return { exitCode, stderr };
   } finally {
-    if (proc.exitCode === null) {
-      proc.kill();
-      await proc.exited;
+    try {
+      if (proc?.exitCode === null) {
+        proc.kill();
+        await proc.exited;
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
     }
-    rmSync(dir, { recursive: true, force: true });
   }
 }
 
