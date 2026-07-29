@@ -100,6 +100,33 @@ describe('cache concurrency e2e', () => {
     expect(stored.every((byte) => byte === first)).toBe(true);
   }, 20000);
 
+  it('commits one intact artifact under a 32-client same-hash burst', async () => {
+    const hash = 'burstputhash01';
+    const size = 64 * 1024;
+    const bodies = Array.from({ length: 32 }, (_, index) => new Uint8Array(size).fill(index));
+
+    const responses = await Promise.all(
+      bodies.map((body) =>
+        fetch(`${server.baseUrl}/v1/cache/${hash}`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${E2E_ADMIN_TOKEN}` },
+          body,
+        }),
+      ),
+    );
+    const statuses = responses.map(({ status }) => status);
+    expect(statuses.filter((status) => status === 200)).toHaveLength(1);
+    expect(statuses.filter((status) => status === 409)).toHaveLength(31);
+
+    const get = await fetch(`${server.baseUrl}/v1/cache/${hash}`, {
+      headers: { Authorization: `Bearer ${E2E_ADMIN_TOKEN}` },
+    });
+    expect(get.status).toBe(200);
+    const stored = new Uint8Array(await get.arrayBuffer());
+    expect(stored.length).toBe(size);
+    expect(stored.every((byte) => byte === stored[0])).toBe(true);
+  }, 20000);
+
   it('never stores a truncated upload after a client disconnect mid-body', async () => {
     const hash = 'truncatedputhash01';
     const conn = await openConnection();

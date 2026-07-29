@@ -78,6 +78,13 @@ describe.skipIf(!ENDPOINT)('s3 storage e2e (MinIO)', () => {
     await server?.stop();
   });
 
+  it('reports ready when the S3 dependency is available', async () => {
+    const response = await fetch(`${server.baseUrl}/ready`);
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('OK');
+  });
+
   it('round-trips a large artifact intact', async () => {
     const hash = `s3large${nonce}`;
     // 6 MiB is large enough to catch buffering and streaming regressions.
