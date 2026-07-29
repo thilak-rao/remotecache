@@ -42,16 +42,23 @@ function requirePositiveNumber(name: string, value: number): void {
   }
 }
 
-if (isNaN(PORT) || PORT <= 0 || PORT >= 65536) {
+function requirePositiveInteger(name: string, value: number): void {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    logger.error(`Error: ${name} environment variable must be a positive integer.`);
+    process.exit(1);
+  }
+}
+
+if (!Number.isInteger(PORT) || PORT <= 0 || PORT >= 65536) {
   logger.error('Error: PORT environment variable must be a valid port number.');
   process.exit(1);
 }
 
-requirePositiveNumber('MAX_UPLOAD_BYTES', MAX_UPLOAD_BYTES);
-requirePositiveNumber('SHUTDOWN_DRAIN_TIMEOUT_MS', SHUTDOWN_DRAIN_TIMEOUT_MS);
-if (CACHE_MAX_BYTES !== undefined) requirePositiveNumber('CACHE_MAX_BYTES', CACHE_MAX_BYTES);
+requirePositiveInteger('MAX_UPLOAD_BYTES', MAX_UPLOAD_BYTES);
+requirePositiveInteger('SHUTDOWN_DRAIN_TIMEOUT_MS', SHUTDOWN_DRAIN_TIMEOUT_MS);
+if (CACHE_MAX_BYTES !== undefined) requirePositiveInteger('CACHE_MAX_BYTES', CACHE_MAX_BYTES);
 if (CACHE_TTL_HOURS !== undefined) requirePositiveNumber('CACHE_TTL_HOURS', CACHE_TTL_HOURS);
-requirePositiveNumber('CACHE_SWEEP_INTERVAL_MS', CACHE_SWEEP_INTERVAL_MS);
+requirePositiveInteger('CACHE_SWEEP_INTERVAL_MS', CACHE_SWEEP_INTERVAL_MS);
 
 if (!ADMIN_TOKEN) {
   logger.error('Error: ADMIN_TOKEN environment variable must be set.');
