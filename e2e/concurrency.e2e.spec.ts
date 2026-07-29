@@ -115,6 +115,7 @@ describe('cache concurrency e2e', () => {
       ),
     );
     const statuses = responses.map(({ status }) => status);
+    const winnerIndex = responses.findIndex(({ status }) => status === 200);
     expect(statuses.filter((status) => status === 200)).toHaveLength(1);
     expect(statuses.filter((status) => status === 409)).toHaveLength(31);
 
@@ -123,8 +124,7 @@ describe('cache concurrency e2e', () => {
     });
     expect(get.status).toBe(200);
     const stored = new Uint8Array(await get.arrayBuffer());
-    expect(stored.length).toBe(size);
-    expect(stored.every((byte) => byte === stored[0])).toBe(true);
+    expect(stored).toEqual(bodies[winnerIndex]);
   }, 20000);
 
   it('never stores a truncated upload after a client disconnect mid-body', async () => {
