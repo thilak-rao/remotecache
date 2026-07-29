@@ -2,6 +2,10 @@ import { describe, expect, it, mock } from 'bun:test';
 import { getCache } from './get-cache';
 import type { CacheFile } from './cache-file.interface';
 import type { TokenPermission } from '../token/token-interfaces';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { FileSystemStrategy } from './storage-strategy/file-system';
 
 const logger = { error: mock() };
 mock.module('../logger', () => ({ logger }));
@@ -64,6 +68,35 @@ describe('getCache', () => {
     expect(response.status).toBe(500);
     expect(await response.text()).toBe('Failed to read cache');
     expect(logger.error).toHaveBeenCalledWith(boom);
+  });
+
+  it('returns 500 when a filesystem entry disappears after the existence check', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'rc-get-cache-disappear-'));
+    const hash = 'disappearinghash01';
+    const path = join(dir, hash);
+    const strategy = new FileSystemStrategy(dir);
+
+    try {
+      await Bun.write(path, 'payload');
+      const cacheFile = {
+        valid: () => true,
+        exists: async () => {
+          const exists = await strategy.exists(hash);
+          expect(exists).toBe(true);
+          rmSync(path);
+          return exists;
+        },
+        stream: () => strategy.getStream(hash),
+        size: () => strategy.getSize(hash),
+      };
+
+      const response = await getCache(cacheFile, 'readonly');
+
+      expect(response.status).toBe(500);
+      expect(await response.text()).toBe('Failed to read cache');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it('returns 200 with stream, content-type, and length when entry exists', async () => {

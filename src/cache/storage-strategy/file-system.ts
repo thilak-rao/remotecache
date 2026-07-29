@@ -89,6 +89,10 @@ export class FileSystemStrategy implements CacheStorageStrategy {
     return Bun.file(this.getPath(hash)).exists();
   }
 
+  /**
+   * Acquiring the reader and priming its first read opens the file before this
+   * returns, so disappearance failures reach getCache's 500 path before a 200.
+   */
   async getStream(hash: string): Promise<ReadableStream> {
     const path = this.getPath(hash);
     // Eviction recency: mtime means "last accessed" (see src/cache/eviction.ts).
@@ -96,7 +100,24 @@ export class FileSystemStrategy implements CacheStorageStrategy {
     try {
       await utimes(path, now, now);
     } catch {}
-    return Bun.file(path).stream();
+    const reader = Bun.file(path).stream().getReader();
+    const firstRead = await reader.read();
+    let replayFirstRead = true;
+
+    return new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        const result = replayFirstRead ? firstRead : await reader.read();
+        replayFirstRead = false;
+        if (result.done) {
+          controller.close();
+          return;
+        }
+        controller.enqueue(result.value);
+      },
+      cancel(reason) {
+        return reader.cancel(reason);
+      },
+    });
   }
 
   async getSize(hash: string): Promise<number> {
