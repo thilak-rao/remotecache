@@ -89,8 +89,9 @@ export class TokenStorage {
    * Verifies the token table can serve the columns used by runtime operations.
    */
   checkReady(): Promise<void> {
-    this.#db.query('SELECT id, value, permission FROM tokens LIMIT 1').get();
-    return Promise.resolve();
+    return Promise.resolve().then(() => {
+      this.#db.query('SELECT id, value, permission FROM tokens LIMIT 1').get();
+    });
   }
 
   addToken({ id, value, permission }: TokenRecord): DatabaseOperation<AddTokenError> {

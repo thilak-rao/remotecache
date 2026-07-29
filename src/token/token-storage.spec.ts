@@ -133,6 +133,6 @@ describe('TokenStorage', () => {
     corruptor.run('DROP TABLE tokens');
     corruptor.close();
 
-    expect(() => storage.checkReady()).toThrow();
+    await expect(storage.checkReady()).rejects.toThrow();
   });
 });
