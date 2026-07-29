@@ -111,28 +111,34 @@ describe('writeCache', () => {
     expect(cacheFile.writeStream).not.toHaveBeenCalled();
   });
 
-  it('returns 400 when content length header is invalid', async () => {
-    const cacheFile = makeCacheFile();
-    cacheFile.exists.mockResolvedValue(false);
+  it('returns 400 for invalid Content-Length syntax', async () => {
+    for (const headerContentLength of [
+      '',
+      '0',
+      '-1',
+      '+4',
+      ' 4 ',
+      '4.0',
+      '4e0',
+      'Infinity',
+      'NaN',
+    ]) {
+      const cacheFile = makeCacheFile();
+      cacheFile.exists.mockResolvedValue(false);
 
-    const body = createStream('data');
-    const response = await writeCache(cacheFile, 'full', body, 'not-a-number', maxUploadBytes);
+      const body = createStream('data');
+      const response = await writeCache(
+        cacheFile,
+        'full',
+        body,
+        headerContentLength,
+        maxUploadBytes,
+      );
 
-    expect(response.status).toBe(400);
-    expect(await response.text()).toBe('Invalid Content-Length header');
-    expect(cacheFile.writeStream).not.toHaveBeenCalled();
-  });
-
-  it('returns 400 when Content-Length is not a plain integer (e.g. scientific notation)', async () => {
-    const cacheFile = makeCacheFile();
-    cacheFile.exists.mockResolvedValue(false);
-
-    const body = createStream('data');
-    const response = await writeCache(cacheFile, 'full', body, '1e308', maxUploadBytes);
-
-    expect(response.status).toBe(400);
-    expect(await response.text()).toBe('Invalid Content-Length header');
-    expect(cacheFile.writeStream).not.toHaveBeenCalled();
+      expect(response.status).toBe(400);
+      expect(await response.text()).toBe('Invalid Content-Length header');
+      expect(cacheFile.writeStream).not.toHaveBeenCalled();
+    }
   });
 
   it('returns 413 and never reads the body when Content-Length exceeds the max', async () => {
@@ -155,7 +161,7 @@ describe('writeCache', () => {
     expect(cacheFile.writeStream).not.toHaveBeenCalled();
   });
 
-  it('returns 400 when content length does not match body length', async () => {
+  it('returns 400 when the body ends before the declared Content-Length', async () => {
     const cacheFile = makeCacheFile();
     cacheFile.exists.mockResolvedValue(false);
 
@@ -164,11 +170,35 @@ describe('writeCache', () => {
       await consumeStream(stream);
     });
 
-    const response = await writeCache(cacheFile, 'full', body, '3', maxUploadBytes);
+    const response = await writeCache(cacheFile, 'full', body, '5', maxUploadBytes);
 
     expect(response.status).toBe(400);
     expect(await response.text()).toBe('Invalid Content-Length header');
     expect(cacheFile.writeStream).toHaveBeenCalled();
+  });
+
+  it('cancels the source when the body exceeds the declared Content-Length', async () => {
+    const cacheFile = makeCacheFile();
+    cacheFile.exists.mockResolvedValue(false);
+    let sourceCanceled = false;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('12345'));
+      },
+      cancel() {
+        sourceCanceled = true;
+      },
+    });
+    cacheFile.writeStream.mockImplementation(async (stream) => {
+      await consumeStream(stream);
+    });
+
+    const response = await writeCache(cacheFile, 'full', body, '4', maxUploadBytes);
+
+    expect(cacheFile.writeStream).toHaveBeenCalled();
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe('Invalid Content-Length header');
+    expect(sourceCanceled).toBe(true);
   });
 
   it('writes and returns 200 with null body when all validations pass', async () => {
@@ -194,8 +224,16 @@ describe('writeCache', () => {
     const cacheFile = makeCacheFile();
     cacheFile.exists.mockResolvedValue(false);
     cacheFile.writeStream.mockRejectedValue(diskFullError);
+    let sourceCanceled = false;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('payload'));
+      },
+      cancel() {
+        sourceCanceled = true;
+      },
+    });
 
-    const body = createStream('payload');
     const response = await writeCache(cacheFile, 'full', body, '7', maxUploadBytes);
 
     expect(cacheFile.exists).toHaveBeenCalled();
@@ -203,6 +241,7 @@ describe('writeCache', () => {
     expect(response.status).toBe(500);
     expect(await response.text()).toBe('Failed to write to cache');
     expect(logger.error).toHaveBeenCalledWith(diskFullError);
+    expect(sourceCanceled).toBe(true);
   });
 
   it('returns 409 when the storage commit loses a first-writer race', async () => {

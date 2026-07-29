@@ -32,6 +32,12 @@ const toReadableStream = (
 class ContentLengthExceededError extends Error {}
 class ContentLengthMismatchError extends Error {}
 
+/**
+ * Validates and streams one append-only cache upload.
+ *
+ * After acquiring the body reader, any rejected write cancels it so unread or
+ * oversized sources cannot remain live after the response is decided.
+ */
 export async function writeCache(
   cacheFile: Pick<CacheFile, 'exists' | 'writeStream' | 'valid'>,
   tokenPermission: TokenPermission | null,
@@ -72,6 +78,13 @@ export async function writeCache(
 
   let total = 0;
   const reader = sourceStream.getReader();
+  const cancelSource = async () => {
+    try {
+      await reader.cancel();
+    } catch {
+      // Preserve the original write failure and response mapping.
+    }
+  };
   const countedStream = new ReadableStream<Uint8Array>({
     async pull(controller) {
       const { value, done } = await reader.read();
@@ -91,9 +104,7 @@ export async function writeCache(
       controller.enqueue(value);
     },
     async cancel() {
-      try {
-        await reader.cancel();
-      } catch {}
+      await cancelSource();
     },
   });
 
@@ -101,6 +112,7 @@ export async function writeCache(
     await cacheFile.writeStream(countedStream, expectedLength);
     return okResponse({ message: null });
   } catch (error) {
+    await cancelSource();
     if (error instanceof CacheEntryExistsError) {
       return conflictError('Cannot override an existing record');
     }
