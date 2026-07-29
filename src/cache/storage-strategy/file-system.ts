@@ -101,21 +101,44 @@ export class FileSystemStrategy implements CacheStorageStrategy {
       await utimes(path, now, now);
     } catch {}
     const reader = Bun.file(path).stream().getReader();
-    const firstRead = await reader.read();
+    let readerReleased = false;
+    const releaseReader = () => {
+      if (readerReleased) return;
+      readerReleased = true;
+      reader.releaseLock();
+    };
+
+    let firstRead: Awaited<ReturnType<typeof reader.read>>;
+    try {
+      firstRead = await reader.read();
+    } catch (error) {
+      releaseReader();
+      throw error;
+    }
     let replayFirstRead = true;
 
     return new ReadableStream<Uint8Array>({
       async pull(controller) {
-        const result = replayFirstRead ? firstRead : await reader.read();
-        replayFirstRead = false;
-        if (result.done) {
-          controller.close();
-          return;
+        try {
+          const result = replayFirstRead ? firstRead : await reader.read();
+          replayFirstRead = false;
+          if (result.done) {
+            releaseReader();
+            controller.close();
+            return;
+          }
+          controller.enqueue(result.value);
+        } catch (error) {
+          releaseReader();
+          throw error;
         }
-        controller.enqueue(result.value);
       },
-      cancel(reason) {
-        return reader.cancel(reason);
+      async cancel(reason) {
+        try {
+          await reader.cancel(reason);
+        } finally {
+          releaseReader();
+        }
       },
     });
   }
