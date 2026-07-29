@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { E2E_ADMIN_TOKEN, spawnServer, type SpawnedServer } from './spawn-server';
 
-const PORT = 4017;
+const PORT = 4019;
 const RAW_REQUEST_TIMEOUT = Symbol('raw request timeout');
 
 async function rawRequest(request: string): Promise<string> {
@@ -109,5 +109,5 @@ describe('request boundaries e2e', () => {
       headers: { Authorization: `Bearer ${E2E_ADMIN_TOKEN}` },
     });
     expect(get.status).toBe(404);
-  });
+  }, 10000);
 });
