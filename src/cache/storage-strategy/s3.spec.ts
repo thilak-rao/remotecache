@@ -10,10 +10,12 @@ type S3ClientPrototype = {
 const s3Prototype = S3Client.prototype as unknown as S3ClientPrototype;
 const originalExists = s3Prototype.exists;
 const originalList = s3Prototype.list;
+const originalFetch = globalThis.fetch;
 
 afterEach(() => {
   s3Prototype.exists = originalExists;
   s3Prototype.list = originalList;
+  globalThis.fetch = originalFetch;
 });
 
 describe('shouldRefreshCredentials', () => {
@@ -36,12 +38,67 @@ describe('shouldRefreshCredentials', () => {
   });
 });
 
-describe('S3Strategy readiness', () => {
+describe('S3Strategy', () => {
   const createStrategy = () =>
     new S3Strategy({
       bucket: 'bucket',
       credentials: { accessKeyId: 'access', secretAccessKey: 'secret' },
     });
+
+  it('coalesces concurrent credential resolution', async () => {
+    let providerCalls = 0;
+    const { promise: credentialsGate, resolve: releaseCredentials } = Promise.withResolvers<void>();
+    s3Prototype.exists = () => Promise.resolve(false);
+    const strategy = new S3Strategy({
+      bucket: 'bucket',
+      credentials: async () => {
+        providerCalls++;
+        await credentialsGate;
+        return {
+          accessKeyId: 'access',
+          secretAccessKey: 'secret',
+          expiration: new Date(Date.now() + 30 * 60 * 1000),
+        };
+      },
+    });
+
+    const requests = Array.from({ length: 32 }, () => strategy.exists('hash'));
+    expect(providerCalls).toBe(1);
+    releaseCredentials();
+
+    await expect(Promise.all(requests)).resolves.toEqual(Array<boolean>(32).fill(false));
+    expect(providerCalls).toBe(1);
+  });
+
+  it('retries credential resolution after a provider failure', async () => {
+    let providerCalls = 0;
+    s3Prototype.exists = () => Promise.resolve(true);
+    const strategy = new S3Strategy({
+      bucket: 'bucket',
+      credentials: async () => {
+        providerCalls++;
+        if (providerCalls === 1) {
+          throw new Error('STS unavailable');
+        }
+        return { accessKeyId: 'access', secretAccessKey: 'secret' };
+      },
+    });
+
+    await expect(strategy.exists('hash')).rejects.toThrow(/^STS unavailable$/);
+    await expect(strategy.exists('hash')).resolves.toBe(true);
+    expect(providerCalls).toBe(2);
+  });
+
+  it('rejects writes when the backend does not support conditional writes', async () => {
+    globalThis.fetch = Object.assign(
+      async () => new Response('conditional writes unsupported', { status: 501 }),
+      { preconnect: originalFetch.preconnect },
+    );
+
+    await expect(
+      createStrategy().writeStream('hash', new Blob(['data']).stream(), 4),
+    ).rejects.toThrow('does not support conditional writes');
+  });
 
   it('checks bucket readiness by listing at most one object', async () => {
     let listInput: Bun.S3ListObjectsOptions | null | undefined;
