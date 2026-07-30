@@ -18,6 +18,175 @@ const streamOf = (payload: string, chunkSize = 8) =>
     },
   });
 
+const originalBunFile = Bun.file;
+const callOriginalBunFile = originalBunFile as unknown as (...args: unknown[]) => unknown;
+
+async function withFileStream(
+  stream: ReadableStream<Uint8Array>,
+  run: (strategy: FileSystemStrategy, hash: string) => Promise<void>,
+): Promise<void> {
+  const cacheDir = join(tmpdir(), `rc-fs-reader-${crypto.randomUUID()}`);
+  const hash = 'readerlockhash01';
+  const path = join(cacheDir, hash);
+  Bun.file = ((...args: unknown[]) => {
+    if (args[0] === path) return { stream: () => stream };
+    return callOriginalBunFile(...args);
+  }) as unknown as typeof Bun.file;
+
+  try {
+    await run(new FileSystemStrategy(cacheDir), hash);
+  } finally {
+    Bun.file = originalBunFile;
+  }
+}
+
+function trackReader(source: ReadableStream<Uint8Array>) {
+  const reader = source.getReader();
+  let reads = 0;
+  let releases = 0;
+  const trackedReader = {
+    read() {
+      reads++;
+      return reader.read();
+    },
+    cancel(reason?: unknown) {
+      return reader.cancel(reason);
+    },
+    releaseLock() {
+      releases++;
+      reader.releaseLock();
+    },
+  } as unknown as ReadableStreamDefaultReader<Uint8Array>;
+
+  return {
+    stream: { getReader: () => trackedReader } as unknown as ReadableStream<Uint8Array>,
+    reads: () => reads,
+    releases: () => releases,
+  };
+}
+
+describe('FileSystemStrategy getStream reader lifetime', () => {
+  it('releases its source reader on EOF and read errors without losing bytes or errors', async () => {
+    const encoder = new TextEncoder();
+    const completedSource = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('first'));
+        controller.enqueue(encoder.encode('second'));
+        controller.close();
+      },
+    });
+    const completed = trackReader(completedSource);
+
+    await withFileStream(completed.stream, async (strategy, hash) => {
+      const stream = await strategy.getStream(hash);
+
+      expect(completed.reads()).toBe(1);
+      expect(completedSource.locked).toBe(true);
+      expect(await new Response(stream).text()).toBe('firstsecond');
+    });
+
+    expect(completed.releases()).toBe(1);
+    expect(completedSource.locked).toBe(false);
+
+    const initialError = new Error('initial read failed');
+    const initialErrorSource = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.error(initialError);
+      },
+    });
+    const failedInitially = trackReader(initialErrorSource);
+
+    await withFileStream(failedInitially.stream, async (strategy, hash) => {
+      await expect(strategy.getStream(hash)).rejects.toBe(initialError);
+    });
+
+    expect(failedInitially.reads()).toBe(1);
+    expect(failedInitially.releases()).toBe(1);
+    expect(initialErrorSource.locked).toBe(false);
+
+    const laterError = new Error('later read failed');
+    const laterErrorSource = new ReadableStream<Uint8Array>(
+      {
+        start(controller) {
+          controller.enqueue(encoder.encode('first'));
+        },
+        pull(controller) {
+          controller.error(laterError);
+        },
+      },
+      { highWaterMark: 0 },
+    );
+    const failedLater = trackReader(laterErrorSource);
+
+    await withFileStream(failedLater.stream, async (strategy, hash) => {
+      const stream = await strategy.getStream(hash);
+      const reader = stream.getReader();
+
+      expect(failedLater.reads()).toBe(1);
+      expect(laterErrorSource.locked).toBe(true);
+      try {
+        const first = await reader.read();
+        expect(new TextDecoder().decode(first.value)).toBe('first');
+        await expect(reader.read()).rejects.toBe(laterError);
+      } finally {
+        reader.releaseLock();
+      }
+    });
+
+    expect(failedLater.releases()).toBe(1);
+    expect(laterErrorSource.locked).toBe(false);
+    expect(Bun.file).toBe(originalBunFile);
+  });
+
+  it('forwards cancellation and releases its source reader when cancellation settles', async () => {
+    const reason = { kind: 'consumer stopped' };
+    let receivedReason: unknown;
+    const completedSource = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1]));
+      },
+      cancel(actualReason) {
+        receivedReason = actualReason;
+      },
+    });
+    const completed = trackReader(completedSource);
+
+    await withFileStream(completed.stream, async (strategy, hash) => {
+      const stream = await strategy.getStream(hash);
+
+      expect(completedSource.locked).toBe(true);
+      await stream.cancel(reason);
+    });
+
+    expect(receivedReason).toBe(reason);
+    expect(completed.releases()).toBe(1);
+    expect(completedSource.locked).toBe(false);
+
+    const cancelError = new Error('cancel failed');
+    let rejectedReason: unknown;
+    const rejectedSource = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new Uint8Array([1]));
+      },
+      cancel(actualReason) {
+        rejectedReason = actualReason;
+        return Promise.reject(cancelError);
+      },
+    });
+    const rejected = trackReader(rejectedSource);
+
+    await withFileStream(rejected.stream, async (strategy, hash) => {
+      const stream = await strategy.getStream(hash);
+      await expect(stream.cancel(reason)).rejects.toBe(cancelError);
+    });
+
+    expect(rejectedReason).toBe(reason);
+    expect(rejected.releases()).toBe(1);
+    expect(rejectedSource.locked).toBe(false);
+    expect(Bun.file).toBe(originalBunFile);
+  });
+});
+
 describe('FileSystemStrategy concurrent writes', () => {
   it('keeps exactly one intact artifact when two writers race the same hash', async () => {
     const dir = mkdtempSync(join(tmpdir(), 'rc-fs-race-'));
