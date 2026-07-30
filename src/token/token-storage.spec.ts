@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { afterEach, describe, expect, it } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
@@ -7,11 +7,19 @@ import { promises as fs } from 'node:fs';
 import { TokenStorage } from './token-storage';
 import { hashToken } from './hash-token';
 
+const dbDirs = new Set<string>();
+
 const freshDbPath = async () => {
   const dir = join(tmpdir(), `nx-cache-token-db-${randomUUID()}`);
   await fs.mkdir(dir, { recursive: true });
+  dbDirs.add(dir);
   return join(dir, 'tokens.sqlite');
 };
+
+afterEach(async () => {
+  await Promise.all([...dbDirs].map((dir) => fs.rm(dir, { recursive: true, force: true })));
+  dbDirs.clear();
+});
 
 const readStoredValue = (dbPath: string, id: string) => {
   const db = new Database(dbPath, { strict: true });
@@ -119,7 +127,7 @@ describe('TokenStorage', () => {
     });
   });
 
-  it('checks sqlite readiness with a simple query', async () => {
+  it('checks readiness through the operational token columns', async () => {
     const dbPath = await freshDbPath();
     const storage = new TokenStorage(dbPath);
 

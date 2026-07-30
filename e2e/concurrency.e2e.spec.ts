@@ -125,7 +125,7 @@ describe('cache concurrency e2e', () => {
     expect(get.status).toBe(200);
     const stored = new Uint8Array(await get.arrayBuffer());
     expect(stored).toEqual(bodies[winnerIndex]);
-  }, 20000);
+  }, 10000);
 
   it('never stores a truncated upload after a client disconnect mid-body', async () => {
     const hash = 'truncatedputhash01';
