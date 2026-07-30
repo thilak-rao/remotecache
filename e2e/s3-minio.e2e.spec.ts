@@ -159,19 +159,22 @@ describe.skipIf(!ENDPOINT)('s3 storage e2e (MinIO)', () => {
     const failed = await openConnection();
     failed.write(putHead(hash, declared));
     failed.write(new Uint8Array(1024 * 1024).fill(9));
+    // Let the partial request reach the backend before starting its contender.
     await Bun.sleep(200);
 
     const winnerBody = new Uint8Array(1024).fill(3);
-    const winner = await fetch(`${server.baseUrl}/v1/cache/${hash}`, {
+    const winnerPromise = fetch(`${server.baseUrl}/v1/cache/${hash}`, {
       method: 'PUT',
       headers: authHeaders,
       body: winnerBody,
     });
-    expect(winner.status).toBe(200);
 
+    // Keep both same-key requests live before aborting the incomplete one.
+    await Bun.sleep(100);
     failed.end();
-    await failed.response;
-    await Bun.sleep(1000);
+    const [winner, failedResponse] = await Promise.all([winnerPromise, failed.response]);
+    expect(failedResponse).not.toBe('__TIMEOUT__');
+    expect(winner.status).toBe(200);
 
     const get = await fetch(`${server.baseUrl}/v1/cache/${hash}`, { headers: authHeaders });
     expect(get.status).toBe(200);

@@ -35,8 +35,12 @@ class ContentLengthMismatchError extends Error {}
 /**
  * Validates and streams one append-only cache upload.
  *
- * After acquiring the body reader, any rejected write cancels it so unread or
- * oversized sources cannot remain live after the response is decided.
+ * After acquiring the body reader, every terminal write result completes its
+ * lifecycle. Explicit lock release is best-effort because Bun direct HTTP
+ * readers can omit releaseLock or throw when it is called; those readers
+ * complete through EOF or cancellation. Rejected writes initiate cancellation
+ * without blocking the response, so unread or oversized sources finish cleanup
+ * when their cancellation settles.
  */
 export async function writeCache(
   cacheFile: Pick<CacheFile, 'exists' | 'writeStream' | 'valid'>,
@@ -78,12 +82,31 @@ export async function writeCache(
 
   let total = 0;
   const reader = sourceStream.getReader();
-  const cancelSource = async () => {
+  let sourceReleased = false;
+  const releaseSource = () => {
+    if (sourceReleased) return;
+    sourceReleased = true;
     try {
-      await reader.cancel();
+      if (typeof reader.releaseLock === 'function') {
+        reader.releaseLock();
+      }
     } catch {
-      // Preserve the original write failure and response mapping.
+      // Bun direct HTTP readers complete through EOF/cancel even when their
+      // releaseLock method cannot be called.
     }
+  };
+  let sourceCancellation: Promise<void> | undefined;
+  const cancelSource = () => {
+    if (sourceReleased || sourceCancellation) return;
+    sourceCancellation = (async () => {
+      try {
+        await reader.cancel();
+      } catch {
+        // Preserve the original write failure and response mapping.
+      } finally {
+        releaseSource();
+      }
+    })();
   };
   const countedStream = new ReadableStream<Uint8Array>({
     async pull(controller) {
@@ -103,8 +126,8 @@ export async function writeCache(
       }
       controller.enqueue(value);
     },
-    async cancel() {
-      await cancelSource();
+    cancel() {
+      cancelSource();
     },
   });
 
@@ -112,7 +135,7 @@ export async function writeCache(
     await cacheFile.writeStream(countedStream, expectedLength);
     return okResponse({ message: null });
   } catch (error) {
-    await cancelSource();
+    cancelSource();
     if (error instanceof CacheEntryExistsError) {
       return conflictError('Cannot override an existing record');
     }
@@ -124,5 +147,7 @@ export async function writeCache(
     }
     logger.error(error);
     return internalServerError('Failed to write to cache');
+  } finally {
+    releaseSource();
   }
 }

@@ -161,7 +161,7 @@ describe('writeCache', () => {
     expect(cacheFile.writeStream).not.toHaveBeenCalled();
   });
 
-  it('returns 400 when the body ends before the declared Content-Length', async () => {
+  it('returns 400 and releases the source when the body ends too soon', async () => {
     const cacheFile = makeCacheFile();
     cacheFile.exists.mockResolvedValue(false);
 
@@ -175,9 +175,10 @@ describe('writeCache', () => {
     expect(response.status).toBe(400);
     expect(await response.text()).toBe('Invalid Content-Length header');
     expect(cacheFile.writeStream).toHaveBeenCalled();
+    expect(body.locked).toBe(false);
   });
 
-  it('cancels the source when the body exceeds the declared Content-Length', async () => {
+  it('cancels and releases the source when the body exceeds Content-Length', async () => {
     const cacheFile = makeCacheFile();
     cacheFile.exists.mockResolvedValue(false);
     let sourceCanceled = false;
@@ -199,9 +200,10 @@ describe('writeCache', () => {
     expect(response.status).toBe(400);
     expect(await response.text()).toBe('Invalid Content-Length header');
     expect(sourceCanceled).toBe(true);
+    expect(body.locked).toBe(false);
   });
 
-  it('writes and returns 200 with null body when all validations pass', async () => {
+  it('writes successfully and releases the source reader', async () => {
     const cacheFile = makeCacheFile();
     cacheFile.exists.mockResolvedValue(false);
     cacheFile.writeStream.mockImplementation(async (stream) => {
@@ -217,9 +219,39 @@ describe('writeCache', () => {
     expect(cacheFile.writeStream.mock.calls[0]?.[1]).toBe(9);
     expect(response.status).toBe(200);
     expect(await response.text()).toBe('');
+    expect(body.locked).toBe(false);
   });
 
-  it('returns 500 when write fails', async () => {
+  it('preserves success when a Bun-like reader rejects explicit release', async () => {
+    const cacheFile = makeCacheFile();
+    cacheFile.exists.mockResolvedValue(false);
+    cacheFile.writeStream.mockImplementation(async (stream) => {
+      await consumeStream(stream);
+    });
+    const body = createStream('data');
+    const getReader = body.getReader.bind(body);
+    let releaseAttempts = 0;
+    Object.defineProperty(body, 'getReader', {
+      value: () => {
+        const reader = getReader();
+        Object.defineProperty(reader, 'releaseLock', {
+          value: () => {
+            releaseAttempts++;
+            throw new TypeError('Bun direct reader cannot release');
+          },
+        });
+        return reader;
+      },
+    });
+
+    const response = await writeCache(cacheFile, 'full', body, '4', maxUploadBytes);
+
+    expect(response.status).toBe(200);
+    expect(await response.text()).toBe('');
+    expect(releaseAttempts).toBe(1);
+  });
+
+  it('cancels and releases the source when storage rejects the write', async () => {
     const diskFullError = new Error('disk full');
     const cacheFile = makeCacheFile();
     cacheFile.exists.mockResolvedValue(false);
@@ -242,17 +274,45 @@ describe('writeCache', () => {
     expect(await response.text()).toBe('Failed to write to cache');
     expect(logger.error).toHaveBeenCalledWith(diskFullError);
     expect(sourceCanceled).toBe(true);
+    expect(body.locked).toBe(false);
   });
 
-  it('returns 409 when the storage commit loses a first-writer race', async () => {
+  it('cancels and releases the source when storage loses a first-writer race', async () => {
     const cacheFile = makeCacheFile();
     cacheFile.exists.mockResolvedValue(false);
     cacheFile.writeStream.mockRejectedValue(new CacheEntryExistsError('racehash'));
+    let sourceCanceled = false;
+    let cancellationSettled = false;
+    let releaseCancellation: () => void;
+    const cancellationGate = new Promise<void>((resolve) => {
+      releaseCancellation = () => {
+        cancellationSettled = true;
+        resolve();
+      };
+    });
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('data'));
+      },
+      cancel() {
+        sourceCanceled = true;
+        return cancellationGate;
+      },
+    });
 
-    const body = createStream('data');
-    const response = await writeCache(cacheFile, 'full', body, '4', maxUploadBytes);
+    const responsePromise = writeCache(cacheFile, 'full', body, '4', maxUploadBytes);
+    const timeout = Symbol('timeout');
+    const promptResult = await Promise.race([responsePromise, Bun.sleep(100).then(() => timeout)]);
+    const cancellationStartedBeforeSettlement = sourceCanceled && !cancellationSettled;
+    const sourceUnlockedBeforeSettlement = !body.locked;
+    releaseCancellation!();
+    const response = await responsePromise;
 
+    expect(promptResult).not.toBe(timeout);
     expect(response.status).toBe(409);
     expect(await response.text()).toBe('Cannot override an existing record');
+    expect(cancellationStartedBeforeSettlement).toBe(true);
+    expect(sourceUnlockedBeforeSettlement).toBe(true);
+    expect(body.locked).toBe(false);
   });
 });

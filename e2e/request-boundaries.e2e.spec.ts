@@ -6,9 +6,10 @@ import { E2E_ADMIN_TOKEN, spawnServer, type SpawnedServer } from './spawn-server
 const PORT = 4019;
 const RAW_REQUEST_TIMEOUT = Symbol('raw request timeout');
 
-async function rawRequest(request: string): Promise<string> {
+async function rawRequest(request: string, settleAfterHeaders = false): Promise<string> {
   const chunks: Uint8Array[] = [];
   let byteLength = 0;
+  let responseText = '';
   let settled = false;
   let resolveResponse: () => void;
   const received = new Promise<void>((resolve) => {
@@ -28,6 +29,8 @@ async function rawRequest(request: string): Promise<string> {
         const copy = Uint8Array.from(data);
         chunks.push(copy);
         byteLength += copy.byteLength;
+        responseText += new TextDecoder().decode(copy);
+        if (settleAfterHeaders && responseText.includes('\r\n\r\n')) settle();
       },
       close: settle,
       error: settle,
@@ -91,6 +94,27 @@ describe('request boundaries e2e', () => {
     expect([400, 404]).toContain(response.status);
     expect(existsSync(join(server.dir, 'escape'))).toBe(false);
   });
+
+  it('commits a valid raw HTTP upload for a later exact read', async () => {
+    const hash = 'rawputbodyhash';
+    const response = await rawRequest(
+      `PUT /v1/cache/${hash} HTTP/1.1\r\n` +
+        `Host: 127.0.0.1:${PORT}\r\n` +
+        `Authorization: Bearer ${E2E_ADMIN_TOKEN}\r\n` +
+        `Content-Length: 4\r\n` +
+        `Connection: close\r\n\r\n` +
+        `data`,
+      true,
+    );
+
+    expect(response.split('\r\n')[0]).toContain('200');
+
+    const get = await fetch(`${server.baseUrl}/v1/cache/${hash}`, {
+      headers: { Authorization: `Bearer ${E2E_ADMIN_TOKEN}` },
+    });
+    expect(get.status).toBe(200);
+    expect(await get.text()).toBe('data');
+  }, 10000);
 
   it('rejects conflicting Content-Length headers without committing an artifact', async () => {
     const response = await rawRequest(
