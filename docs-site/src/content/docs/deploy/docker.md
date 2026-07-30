@@ -51,7 +51,7 @@ curl -fsS http://localhost:3000/health
 
 It confirms the server process is running and accepting requests. It does not validate token DB or storage backend reachability.
 
-Use `GET /ready` when a probe should also check dependency readiness. It asks the existing SQLite connection to run `SELECT 1` and probes the configured cache backend. With filesystem storage, the runtime probe checks `CACHE_DIR` (`/app/cache` in the image). If SQLite cannot create or open `TOKENS_DB_PATH` (`/app/data/nx-cache-server-tokens.sqlite`), the server normally stops during startup instead. Readiness failures return a static `Not Ready` body; the logs contain the specific error.
+Use `GET /ready` when a probe should also check dependency readiness. It uses the live SQLite connection to read the operational `tokens` table columns used at runtime (`id`, `value`, and `permission`), so a missing or damaged table fails readiness. It then probes the configured cache backend. With filesystem storage, the runtime probe checks `CACHE_DIR` (`/app/cache` in the image). If SQLite cannot create or open `TOKENS_DB_PATH` (`/app/data/nx-cache-server-tokens.sqlite`), the server normally stops during startup instead. Readiness failures return a static `Not Ready` body; the logs contain the specific error.
 
 ## Direct TLS
 

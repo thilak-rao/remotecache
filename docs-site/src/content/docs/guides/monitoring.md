@@ -91,4 +91,4 @@ Tune the hit-rate threshold to your baseline; a monorepo with many long-lived br
 
 ## Readiness
 
-Use token-free `GET /health` for liveness and `GET /ready` for dependency readiness. `/ready` asks the existing SQLite connection to run `SELECT 1` and probes the configured storage backend; filesystem storage probes `CACHE_DIR`. A `503 Not Ready` response means one of these runtime checks failed. Token database creation or open errors normally stop the server during startup. See [Troubleshooting](/guides/troubleshooting/).
+Use token-free `GET /health` for liveness and `GET /ready` for dependency readiness. `/ready` uses the live SQLite connection to read the operational `tokens` table columns used at runtime (`id`, `value`, and `permission`), so a missing or damaged table fails readiness. It then probes the configured storage backend; filesystem storage probes `CACHE_DIR`. A `503 Not Ready` response means one of these runtime checks failed. Token database creation or open errors normally stop the server during startup. See [Troubleshooting](/guides/troubleshooting/).

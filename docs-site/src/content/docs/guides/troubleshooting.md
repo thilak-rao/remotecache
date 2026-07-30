@@ -51,7 +51,7 @@ The artifact is larger than `MAX_UPLOAD_BYTES` (default 500 MiB). Raise the cap 
 
 ## 503 `Not Ready` from `/ready`
 
-The readiness probe asks the existing SQLite connection to run `SELECT 1` and probes the configured cache backend. It does not test token-database write access. The response body is static; the actual dependency error is in the server logs.
+The readiness probe uses the existing SQLite connection to read the operational `tokens` table columns used at runtime (`id`, `value`, and `permission`), so a missing or damaged table fails readiness. This is a read probe and does not test token-database write access. It then probes the configured cache backend. The response body is static; the actual dependency error is in the server logs.
 
 For filesystem storage, the runtime probe checks `CACHE_DIR` (default `./cache`) for write and hard-link support. For S3 or GCS, it checks access to the configured bucket. An unwritable directory for `TOKENS_DB_PATH` (default `./data/nx-cache-server-tokens.sqlite`) normally prevents the token database from opening and stops the server during startup instead of causing a later `/ready` failure.
 
