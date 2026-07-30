@@ -37,16 +37,17 @@ an isolated temporary-directory test cannot reproduce them safely.
 
 ## Final evidence
 
-Measured with Bun 1.3.14 after the test consolidation:
+Measured with Bun 1.3.14 after the test consolidation and reader-lifetime
+regressions:
 
-| Command or run          | Result                                                                                                                 |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Focused consolidation   | 13 pass, 0 fail, 52 `expect()` calls across the three edited specs                                                     |
-| `bun test`              | 145 pass, 9 skip, 0 fail, 436 `expect()` calls, 154 tests across 31 files                                              |
-| `bun test --coverage`   | 92.21% functions and 94.44% lines; the same 145 pass, 9 skip, and 0 fail                                               |
-| Local race repetition   | 20 of 20 iterations passed; each ran 16 tests and 41 `expect()` calls, for 320 pass and 0 fail overall                 |
-| Pinned MinIO repetition | 20 of 20 iterations passed; each ran all 7 tests and 16 `expect()` calls with 0 skips, for 140 pass and 0 fail overall |
-| Static and diff gates   | `bun run format --check`, `bun run lint`, `bun run typecheck`, and `git diff --check` passed                           |
+| Command or run             | Result                                                                                                                 |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Intermediate consolidation | 13 pass, 0 fail, 52 `expect()` calls across the three edited specs                                                     |
+| `bun test`                 | 147 pass, 9 skip, 0 fail, 461 `expect()` calls, 156 tests across 31 files                                              |
+| `bun test --coverage`      | 92.45% functions and 94.67% lines; the same 147 pass, 9 skip, and 0 fail                                               |
+| Local race repetition      | 20 of 20 iterations passed; each ran 18 tests and 66 `expect()` calls, for 360 pass and 0 fail overall                 |
+| Pinned MinIO repetition    | 20 of 20 iterations passed; each ran all 7 tests and 16 `expect()` calls with 0 skips, for 140 pass and 0 fail overall |
+| Static and diff gates      | `bun run format --check`, `bun run lint`, `bun run typecheck`, and `git diff --check` passed                           |
 
 All nine ordinary-suite skips come from `describe.skipIf(!S3_E2E_ENDPOINT)` in
 `e2e/s3-minio.e2e.spec.ts`: without the endpoint, Bun reports the seven
@@ -56,9 +57,13 @@ the endpoint set, each dedicated run reported seven passes and no skips.
 The sweep began at 132 passes, 368 assertions, 140 tests, 30 files, 90.63%
 function coverage, and 92.18% line coverage. Immediately before pruning, the
 suite had 148 passes, 431 assertions, and 157 tests. The final consolidation
-removed three redundant test cases while adding five useful assertions, leaving
-145 passes, 436 assertions, and 154 tests. Coverage remained 92.21% functions
-and 94.44% lines across that consolidation.
+eliminated three redundant test cases while incorporating five targeted
+assertions, leaving 145 passes, 436 assertions, and 154 tests. Two permanent reader-lifetime
+contracts then added 25 branch-level assertions, producing the final 147 passes,
+461 assertions, and 156 tests. Compared with the pre-consolidation suite, the
+final suite has one fewer test but 30 more assertions: three duplicate wrapper
+tests disappeared, while the two denser contracts exercise distinct terminal
+stream behavior; final coverage is 92.45% functions and 94.67% lines.
 
 ## Consolidation decisions
 
@@ -95,9 +100,15 @@ and 94.44% lines across that consolidation.
    deliberately remains a positive number because fractional hours are valid.
 5. A filesystem entry removed after `exists()` could produce a 200 whose body
    then failed. `getStream()` now primes the reader, so disappearance maps to a
-   500 before response construction; the reader is released after a priming
-   failure, EOF, stream error, or cancellation and remains held only while the
-   response stream is open.
+   500 before response construction. Two serial regressions now hold the source
+   lock while the response is open, then verify one exact `releaseLock()` on
+   initial-read rejection, natural EOF, later-read rejection, successful
+   consumer cancellation, and rejected consumer cancellation. The read cases
+   preserve exact bytes or the original error; both cancellation cases forward
+   the exact reason and preserve a rejection. Both contracts failed against the
+   pre-release implementation because it never released the source reader, then
+   passed with the correction; marking them `it.serial` keeps their temporary
+   global `Bun.file` replacement safe under concurrent test execution.
 
 ## Review-caught test and harness defects
 
@@ -125,7 +136,7 @@ and 94.44% lines across that consolidation.
 | `src/cache/eviction.ts`                                    | TTL/size ordering, failed or missing deletes, temporary files, and overlapping sweeps.                  | **Covered:** focused state tests, live LRU e2e, and 20 overlap repetitions; the e2e sweeper exercises timer start/stop, so an isolated duplicate would add no signal.                                                                                                                                                                                     |
 | `src/cache/get-cache.ts`                                   | Authorization must not touch storage; files can disappear between storage operations.                   | **Covered:** auth, validation, miss, rejection, success, and a real disappearance regression that returns 500 before building a 200 when the file disappears before stream acquisition.                                                                                                                                                                   |
 | `src/cache/is-valid-hash.ts`                               | Unicode, controls, encoded separators, dots, traversal, and excessive length.                           | **Covered:** focused compact partitions plus encoded traversal through Bun's HTTP boundary.                                                                                                                                                                                                                                                               |
-| `src/cache/storage-strategy/file-system.ts`                | Concurrent commit integrity, partial artifacts, readiness, recency, read races, and reader lifetime.    | **Covered:** atomic first-writer behavior, exact artifacts, temp cleanup, orphan sweep, readiness, recency, disappearance, terminal reader release, and 20 race repetitions.                                                                                                                                                                              |
+| `src/cache/storage-strategy/file-system.ts`                | Concurrent commit integrity, partial artifacts, readiness, recency, read races, and reader lifetime.    | **Covered:** atomic first-writer behavior, exact artifacts, temp cleanup, orphan sweep, readiness, recency, disappearance, and 20 race repetitions. Two serial contracts cover initial-read rejection, EOF, later-read rejection, and successful or rejected cancellation with one exact release, original errors, and cancellation reasons preserved.    |
 | `src/cache/storage-strategy/gcs.ts`                        | Streaming, conditional conflicts, metadata, cancellation, and readiness.                                | **Covered:** fake-client streaming, size metadata, two observed 412 shapes, cancellation, and readiness; **Excluded:** live GCS needs external credentials, billable mutable state, and network reliability outside this bounded run.                                                                                                                     |
 | `src/cache/storage-strategy/s3.ts`                         | Credential stampedes/recovery, conditional writes, aborts, and backend capability errors.               | **Covered:** 32-call provider coalescing invokes the provider once; a failed provider is retried; HTTP 501 rejects conditional writes; pinned MinIO covers readiness, integrity, append-only conflicts, aborts, misses, and races; **Excluded:** live AWS for the same external-state reasons.                                                            |
 | `src/cache/storage-strategy/storage-strategy.interface.ts` | Strategies must preserve append-only commits and classify collisions.                                   | **Covered:** filesystem, GCS, S3, and `writeCache` contracts; the remaining declarations are type-only.                                                                                                                                                                                                                                                   |
@@ -167,8 +178,9 @@ and 94.44% lines across that consolidation.
 
 The local command
 `bun test e2e/concurrency.e2e.spec.ts src/cache/eviction.spec.ts src/cache/storage-strategy/file-system.spec.ts`
-ran exactly 20 times. Every iteration reported 16 pass, 41 `expect()` calls, no
-failure, and no skip; the post-loop audit found no `src/main.ts` process,
+ran exactly 20 times. Every iteration reported 18 pass, 66 `expect()` calls, no
+failure, and no skip, for 360 passes and 1,320 assertions overall. The post-loop
+audit found no `src/main.ts` process,
 listener on port 4015, or matching `rc-e2e-*`, `rc-evict-*`, or `rc-fs-*`
 directory.
 
@@ -181,6 +193,9 @@ reported live health on poll 2. After the bundled `mc` created
 assertions, 0 fail, and 0 skip. Teardown stopped only the captured ID; the exact
 name was absent afterward, TCP 9000 was free, and no e2e server process or
 matching temporary directory remained.
+
+An independent review repeated the 20 endpoint-enabled runs under captured
+container ID prefix `8d02810be910` and again recorded 140 passes with no skips.
 
 Live AWS and GCS remain outside the evidence because both require external
 credentials, mutable cloud state, network availability, and potentially
