@@ -2,19 +2,9 @@ import { describe, expect, it } from 'bun:test';
 import { hashToken } from './hash-token';
 
 describe('hashToken', () => {
-  it('produces a 64-char lowercase hex SHA-256 digest', () => {
-    expect(hashToken('my-token')).toMatch(/^[a-f0-9]{64}$/);
-  });
-
-  it('is deterministic for the same input', () => {
-    expect(hashToken('abc')).toBe(hashToken('abc'));
-  });
-
-  it('differs for different inputs', () => {
-    expect(hashToken('abc')).not.toBe(hashToken('abd'));
-  });
-
-  it('never returns the raw token', () => {
-    expect(hashToken('plaintext-token')).not.toBe('plaintext-token');
+  it('returns the lowercase SHA-256 digest of the UTF-8 token', () => {
+    expect(hashToken('abc')).toBe(
+      'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad',
+    );
   });
 });

@@ -24,7 +24,9 @@ describe('isValidHash', () => {
   it('rejects empty, undefined, and out-of-charset values', () => {
     expect(isValidHash('')).toBe(false);
     expect(isValidHash(undefined)).toBe(false);
-    expect(isValidHash('has space')).toBe(false);
+    for (const hash of ['has space', 'ümlaut', 'line\nbreak', 'null\0byte', 'foo%2Fbar']) {
+      expect(isValidHash(hash)).toBe(false);
+    }
   });
 
   it('caps length at 128 characters', () => {

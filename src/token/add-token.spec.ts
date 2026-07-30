@@ -30,13 +30,15 @@ describe('addToken', () => {
     expect(logger.error).toHaveBeenCalledWith(jsonBodyError);
   });
 
-  it('rejects non-object bodies', async () => {
+  it('rejects JSON values that are not token records', async () => {
     const storage = { addToken: mock() };
-    const jsonBody = mock().mockResolvedValue('not-object');
-    const response = await addToken(true, storage, jsonBody);
 
-    expect(response.status).toBe(400);
-    expect(await response.text()).toBe('Invalid JSON body');
+    for (const value of [null, 'not-object', 42, true, [], {}]) {
+      const jsonBody = mock().mockResolvedValue(value);
+      const response = await addToken(true, storage, jsonBody);
+      expect(response.status).toBe(400);
+    }
+
     expect(storage.addToken).not.toHaveBeenCalled();
   });
 
