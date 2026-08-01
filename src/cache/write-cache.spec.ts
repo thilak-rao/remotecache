@@ -283,20 +283,18 @@ describe('writeCache', () => {
     cacheFile.writeStream.mockRejectedValue(new CacheEntryExistsError('racehash'));
     let sourceCanceled = false;
     let cancellationSettled = false;
-    let releaseCancellation: () => void;
-    const cancellationGate = new Promise<void>((resolve) => {
-      releaseCancellation = () => {
-        cancellationSettled = true;
-        resolve();
-      };
-    });
+    const cancellationGate = Promise.withResolvers<void>();
+    const releaseCancellation = () => {
+      cancellationSettled = true;
+      cancellationGate.resolve();
+    };
     const body = new ReadableStream<Uint8Array>({
       start(controller) {
         controller.enqueue(new TextEncoder().encode('data'));
       },
       cancel() {
         sourceCanceled = true;
-        return cancellationGate;
+        return cancellationGate.promise;
       },
     });
 
@@ -305,7 +303,7 @@ describe('writeCache', () => {
     const promptResult = await Promise.race([responsePromise, Bun.sleep(100).then(() => timeout)]);
     const cancellationStartedBeforeSettlement = sourceCanceled && !cancellationSettled;
     const sourceUnlockedBeforeSettlement = !body.locked;
-    releaseCancellation!();
+    releaseCancellation();
     const response = await responsePromise;
 
     expect(promptResult).not.toBe(timeout);

@@ -19,7 +19,6 @@ const streamOf = (payload: string, chunkSize = 8) =>
   });
 
 const originalBunFile = Bun.file;
-const callOriginalBunFile = originalBunFile as unknown as (...args: unknown[]) => unknown;
 
 async function withFileStream(
   stream: ReadableStream<Uint8Array>,
@@ -28,9 +27,9 @@ async function withFileStream(
   const cacheDir = join(tmpdir(), `rc-fs-reader-${crypto.randomUUID()}`);
   const hash = 'readerlockhash01';
   const path = join(cacheDir, hash);
-  Bun.file = ((...args: unknown[]) => {
-    if (args[0] === path) return { stream: () => stream };
-    return callOriginalBunFile(...args);
+  Bun.file = ((filePath: string, options?: BlobPropertyBag) => {
+    if (filePath === path) return { stream: () => stream };
+    return originalBunFile(filePath, options);
   }) as unknown as typeof Bun.file;
 
   try {

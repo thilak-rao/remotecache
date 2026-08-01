@@ -7,33 +7,21 @@ const PORT = 4019;
 const RAW_REQUEST_TIMEOUT = Symbol('raw request timeout');
 
 async function rawRequest(request: string, settleAfterHeaders = false): Promise<string> {
-  const chunks: Uint8Array[] = [];
-  let byteLength = 0;
+  // A streaming decoder keeps multi-byte sequences intact across chunks.
+  const decoder = new TextDecoder();
+  const received = Promise.withResolvers<void>();
   let responseText = '';
-  let settled = false;
-  let resolveResponse: () => void;
-  const received = new Promise<void>((resolve) => {
-    resolveResponse = resolve;
-  });
-  const settle = () => {
-    if (settled) return;
-    settled = true;
-    resolveResponse();
-  };
 
   const socket = await Bun.connect({
     hostname: '127.0.0.1',
     port: PORT,
     socket: {
       data(_socket, data) {
-        const copy = Uint8Array.from(data);
-        chunks.push(copy);
-        byteLength += copy.byteLength;
-        responseText += new TextDecoder().decode(copy);
-        if (settleAfterHeaders && responseText.includes('\r\n\r\n')) settle();
+        responseText += decoder.decode(data, { stream: true });
+        if (settleAfterHeaders && responseText.includes('\r\n\r\n')) received.resolve();
       },
-      close: settle,
-      error: settle,
+      close: () => received.resolve(),
+      error: () => received.resolve(),
     },
   });
 
@@ -41,7 +29,7 @@ async function rawRequest(request: string, settleAfterHeaders = false): Promise<
   try {
     socket.write(request);
     const result = await Promise.race([
-      received,
+      received.promise,
       new Promise<typeof RAW_REQUEST_TIMEOUT>((resolve) => {
         timeout = setTimeout(() => resolve(RAW_REQUEST_TIMEOUT), 5000);
       }),
@@ -54,13 +42,7 @@ async function rawRequest(request: string, settleAfterHeaders = false): Promise<
     socket.close();
   }
 
-  const bytes = new Uint8Array(byteLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return new TextDecoder().decode(bytes);
+  return responseText;
 }
 
 describe('request boundaries e2e', () => {
