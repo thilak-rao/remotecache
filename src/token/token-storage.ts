@@ -87,11 +87,11 @@ export class TokenStorage {
 
   /**
    * Verifies the token table can serve the columns used by runtime operations.
+   * Failures reject rather than throw synchronously, so readiness probes map
+   * them to a 503 instead of crashing the handler.
    */
-  checkReady(): Promise<void> {
-    return Promise.resolve().then(() => {
-      this.#db.query('SELECT id, value, permission FROM tokens LIMIT 1').get();
-    });
+  async checkReady(): Promise<void> {
+    this.#db.query('SELECT id, value, permission FROM tokens LIMIT 1').get();
   }
 
   addToken({ id, value, permission }: TokenRecord): DatabaseOperation<AddTokenError> {

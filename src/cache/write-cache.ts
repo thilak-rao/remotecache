@@ -87,12 +87,10 @@ export async function writeCache(
     if (sourceReleased) return;
     sourceReleased = true;
     try {
-      if (typeof reader.releaseLock === 'function') {
-        reader.releaseLock();
-      }
+      reader.releaseLock();
     } catch {
       // Bun direct HTTP readers complete through EOF/cancel even when their
-      // releaseLock method cannot be called.
+      // releaseLock method is missing or throws.
     }
   };
   let sourceCancellation: Promise<void> | undefined;

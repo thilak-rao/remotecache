@@ -108,20 +108,19 @@ export class FileSystemStrategy implements CacheStorageStrategy {
       reader.releaseLock();
     };
 
-    let firstRead: Awaited<ReturnType<typeof reader.read>>;
+    let pendingRead: Awaited<ReturnType<typeof reader.read>> | undefined;
     try {
-      firstRead = await reader.read();
+      pendingRead = await reader.read();
     } catch (error) {
       releaseReader();
       throw error;
     }
-    let replayFirstRead = true;
 
     return new ReadableStream<Uint8Array>({
       async pull(controller) {
         try {
-          const result = replayFirstRead ? firstRead : await reader.read();
-          replayFirstRead = false;
+          const result = pendingRead ?? (await reader.read());
+          pendingRead = undefined;
           if (result.done) {
             releaseReader();
             controller.close();
