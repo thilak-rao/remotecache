@@ -1,6 +1,7 @@
 FROM oven/bun:1.4.2-alpine@sha256:d888c0ae6c86d7866ff10c5aafdd9077b36aee6455b33dd270fb93c0dd5cef6f
 
-RUN apk add --no-cache su-exec
+# Pull OpenSSL fixes that land in Alpine before the base image is rebuilt.
+RUN apk add --no-cache su-exec && apk upgrade --no-cache libssl3 libcrypto3
 
 WORKDIR /app
 
