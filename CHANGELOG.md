@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.1](https://github.com/thilak-rao/remotecache/compare/v3.2.0...v3.2.1) (2026-09-24)
+
+
+### Bug Fixes
+
+* **docker:** keep app files root-owned so bun cannot rewrite the entrypoint ([#42](https://github.com/thilak-rao/remotecache/issues/42)) ([708a7b2](https://github.com/thilak-rao/remotecache/commit/708a7b2ac951cdbfe3cf363b55e514e9a6427d96))
+
 ## [3.2.0](https://github.com/thilak-rao/remotecache/compare/v3.1.0...v3.2.0) (2026-09-24)
 
 
