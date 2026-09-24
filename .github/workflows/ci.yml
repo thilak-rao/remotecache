@@ -62,6 +62,21 @@ jobs:
           docker logs remotecache-ci || true
           exit 1
 
+      # Root runs docker-entrypoint.sh on every container restart, so the
+      # runtime user must never be able to rewrite it or the code it launches.
+      - name: Check the runtime user can write only data and cache
+        run: |
+          docker exec -u bun remotecache-ci sh -eu -c '
+            for path in /app /app/docker-entrypoint.sh /app/docker-healthcheck.ts /app/src /app/node_modules; do
+              if [ -w "$path" ]; then
+                echo "bun can write $path"
+                exit 1
+              fi
+            done
+            test -w /app/cache
+            test -w /app/data
+          '
+
       - name: Stop Docker container
         if: always()
         run: docker rm -f remotecache-ci || true

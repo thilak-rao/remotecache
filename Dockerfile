@@ -21,15 +21,16 @@ COPY src ./src
 COPY docker-entrypoint.sh docker-healthcheck.ts ./
 
 # Create the writable image-local data/cache directories. Runtime mounts are
-# prepared by docker-entrypoint.sh before it drops to the `bun` user.
+# prepared by docker-entrypoint.sh before it drops to the `bun` user. Everything
+# else in /app stays root-owned: root runs the entrypoint on every restart.
 RUN chmod +x /app/docker-entrypoint.sh \
     && mkdir -p "$CACHE_DIR" "$(dirname "$TOKENS_DB_PATH")" \
-    && chown -R bun:bun /app
+    && chown bun:bun "$CACHE_DIR" "$(dirname "$TOKENS_DB_PATH")"
 
 EXPOSE 3000
 
 # Probe logic: see docker-healthcheck.ts. Health checks skip the entrypoint, so
-# drop to `bun` here too: /app is bun-writable and must never run as root.
+# drop to `bun` here too so the probe never runs as root.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD ["/bin/sh", "-c", "if [ \"$(id -u)\" = 0 ]; then exec su-exec bun:bun bun /app/docker-healthcheck.ts; fi; exec bun /app/docker-healthcheck.ts"]
 
