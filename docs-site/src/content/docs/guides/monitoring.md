@@ -10,18 +10,20 @@ The server exposes Prometheus metrics at `GET /metrics` in the text exposition f
 
 ## Metrics
 
-| Metric                                   | Type    | Meaning                                                                                                                                                                                          |
-| ---------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `nx_cache_requests_total{method,result}` | counter | Cache requests by method and outcome. `GET` results: `hit`, `miss`, `forbidden`, `bad_request`, `error`. `PUT` results: `stored`, `forbidden`, `immutable`, `too_large`, `bad_request`, `error`. |
-| `nx_cache_uploaded_bytes_total`          | counter | Bytes accepted by successful uploads.                                                                                                                                                            |
-| `nx_cache_evicted_entries_total`         | counter | Entries deleted by the eviction sweeper (filesystem strategy).                                                                                                                                   |
-| `nx_cache_evicted_bytes_total`           | counter | Bytes reclaimed by the eviction sweeper.                                                                                                                                                         |
-| `nx_cache_size_bytes`                    | gauge   | Committed cache size as of the last eviction sweep. Only updates when eviction is enabled.                                                                                                       |
+| Metric                                   | Type    | Meaning                                                                                                                                                                                                                    |
+| ---------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nx_cache_requests_total{method,result}` | counter | Cache requests by method and outcome. `GET` results: `hit`, `miss`, `forbidden`, `throttled`, `bad_request`, `error`. `PUT` results: `stored`, `forbidden`, `immutable`, `too_large`, `throttled`, `bad_request`, `error`. |
+| `nx_cache_uploaded_bytes_total`          | counter | Bytes accepted by successful uploads.                                                                                                                                                                                      |
+| `nx_cache_auth_throttled_total`          | counter | Requests rejected with `429` for repeated authentication failures from one client address.                                                                                                                                 |
+| `nx_cache_evicted_entries_total`         | counter | Entries deleted by the eviction sweeper (filesystem strategy).                                                                                                                                                             |
+| `nx_cache_evicted_bytes_total`           | counter | Bytes reclaimed by the eviction sweeper.                                                                                                                                                                                   |
+| `nx_cache_size_bytes`                    | gauge   | Committed cache size as of the last eviction sweep. Only updates when eviction is enabled.                                                                                                                                 |
 
-Two results deserve a note:
+Three results deserve a note:
 
 - `PUT` `forbidden` counts every write rejected with `403`. This includes missing or invalid bearer tokens and valid `readonly` tokens; the label does not identify which case occurred. A steady nonzero rate means a job has an authentication or permission problem (see [CI recipes](/guides/ci-recipes/)) or someone is probing.
 - `PUT` `immutable` counts attempts to overwrite an existing entry (`409`). Occasional occurrences are normal racing builds.
+- `throttled` counts cache requests rejected with `429` by the [authentication throttle](/guides/security/), so the total still reflects every cache request received. These requests also increment `nx_cache_auth_throttled_total`, which additionally covers throttled admin-route requests.
 
 ## Scraping
 
@@ -76,6 +78,12 @@ groups:
         labels: { severity: warning }
         annotations:
           summary: 'Cache writes were forbidden: check for missing, invalid, or readonly tokens'
+
+      - alert: NxCacheAuthThrottled
+        expr: increase(nx_cache_auth_throttled_total[15m]) > 0
+        labels: { severity: warning }
+        annotations:
+          summary: 'Clients hit the authentication throttle: a token guesser or a misconfigured CI token'
 
       - alert: NxCacheNearCapacity
         # Replace 50000000000 with 90% of your CACHE_MAX_BYTES value; the cap

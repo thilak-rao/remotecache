@@ -5,14 +5,16 @@ export type CacheMethod = 'GET' | 'PUT';
 // Results seeded to 0 so rate()/ratio panels are well-defined before the first
 // real request. Unseeded statuses (mapped to 'other') are added on demand.
 const SEEDED_RESULTS: Record<CacheMethod, readonly string[]> = {
-  GET: ['hit', 'miss', 'forbidden', 'bad_request', 'error'],
-  PUT: ['stored', 'forbidden', 'immutable', 'too_large', 'bad_request', 'error'],
+  GET: ['hit', 'miss', 'forbidden', 'throttled', 'bad_request', 'error'],
+  PUT: ['stored', 'forbidden', 'immutable', 'too_large', 'throttled', 'bad_request', 'error'],
 };
 
 /**
  * Map an HTTP status from a `/v1/cache/:hash` handler to a stable Prometheus
  * label. GET 200/404 drive the cache hit rate. The `forbidden` result groups
  * every 403 and does not distinguish missing, invalid, or insufficient tokens.
+ * The `throttled` result counts requests rejected with 429 by the auth
+ * throttle before the cache handler runs.
  */
 export function cacheResultLabel(method: CacheMethod, status: number): string {
   if (method === 'GET') {
@@ -24,6 +26,7 @@ export function cacheResultLabel(method: CacheMethod, status: number): string {
     if (status === 413) return 'too_large';
   }
   if (status === 403) return 'forbidden';
+  if (status === 429) return 'throttled';
   if (status === 400) return 'bad_request';
   if (status >= 500) return 'error';
   return 'other';
@@ -39,6 +42,7 @@ const seriesKey = (method: CacheMethod, result: string): string => `${method}|${
  */
 export class MetricsRegistry {
   private readonly requests = new Map<string, number>();
+  private authThrottled = 0;
   private uploadedBytes = 0;
   private evictedEntries = 0;
   private evictedBytes = 0;
@@ -62,6 +66,11 @@ export class MetricsRegistry {
     if (result === 'stored') {
       this.uploadedBytes += uploadedBytes;
     }
+  }
+
+  /** Record one request rejected with 429 for repeated authentication failures. */
+  recordAuthThrottled(): void {
+    this.authThrottled++;
   }
 
   /** Record an eviction sweep. Counters accumulate; the gauge is the latest sweep's total. */
@@ -89,6 +98,12 @@ export class MetricsRegistry {
       '# HELP nx_cache_uploaded_bytes_total Total bytes accepted by successful cache uploads.',
       '# TYPE nx_cache_uploaded_bytes_total counter',
       `nx_cache_uploaded_bytes_total ${this.uploadedBytes}`,
+    );
+
+    lines.push(
+      '# HELP nx_cache_auth_throttled_total Requests rejected with 429 for repeated authentication failures.',
+      '# TYPE nx_cache_auth_throttled_total counter',
+      `nx_cache_auth_throttled_total ${this.authThrottled}`,
     );
 
     lines.push(

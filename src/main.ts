@@ -2,16 +2,16 @@ import { TokenStorage } from './token/token-storage';
 import { getCache } from './cache/get-cache';
 import { CacheFile } from './cache/cache-file.interface';
 import { writeCache } from './cache/write-cache';
-import { TokenPermission } from './token/token-interfaces';
+import { resolveToken } from './token/resolve-token';
 import { addToken } from './token/add-token';
 import { deleteToken } from './token/delete-token';
 import { createCacheStorage } from './cache/create-cache-storage';
 import { listTokens } from './token/list-tokens';
 import { logger } from './logger';
 import { internalServerError, notFoundError } from './responses';
+import { AuthThrottle, throttleAuthFailure } from './auth-throttle';
 import { bindAddress, listenPort } from './config';
 import { isValidHash } from './cache/is-valid-hash';
-import { safeEqual } from './safe-equal';
 import { MetricsRegistry } from './metrics/metrics-registry';
 import { getMetrics } from './metrics/get-metrics';
 import { getHealth } from './health/get-health';
@@ -137,7 +137,7 @@ const getCacheFile = (hash: string): CacheFile => ({
     storage.writeStream(hash, stream, contentLength),
 });
 
-const isAdmin = (token: string) => safeEqual(token, ADMIN_TOKEN ?? '');
+const authThrottle = new AuthThrottle();
 
 function getAuthToken(headers: Request['headers']): string {
   const header = headers.get('Authorization');
@@ -149,14 +149,19 @@ function getAuthToken(headers: Request['headers']): string {
   return (m[1] ?? '').trim();
 }
 
-const getTokenPermission = (headers: Headers): TokenPermission | null => {
-  const tokenValue = getAuthToken(headers);
-  if (isAdmin(tokenValue)) {
-    return 'full';
-  }
-  if (!tokenValue) return null;
-  return tokenStorage.findToken(tokenValue)?.permission ?? null;
-};
+// Resolves the request's credential first, then applies the auth throttle to an
+// authentication failure. `rejection` is the 429 to send instead of running the handler.
+function authenticate(request: Request, server: Bun.Server<unknown>) {
+  const { authFailed, ...auth } = resolveToken(
+    getAuthToken(request.headers),
+    tokenStorage,
+    ADMIN_TOKEN ?? '',
+  );
+  const rejection = authFailed
+    ? throttleAuthFailure(authThrottle, metrics, server.requestIP(request)?.address)
+    : null;
+  return { ...auth, rejection };
+}
 
 // Track in-flight handlers so shutdown can drain them. Bun's `server.stop()`
 // closes active connections, so a graceful shutdown must wait for active
@@ -198,50 +203,50 @@ export const server = Bun.serve({
       GET: () => trackRequest(() => getMetrics(metrics)),
     },
     '/v1/cache/:hash': {
-      GET: ({ params, headers }) =>
+      GET: (request, server) =>
         trackRequest(async () => {
-          const tokenPermission = getTokenPermission(headers);
-          const cacheFile = getCacheFile(params.hash);
-
-          const response = await getCache(cacheFile, tokenPermission);
+          const auth = authenticate(request, server);
+          const response =
+            auth.rejection ?? (await getCache(getCacheFile(request.params.hash), auth.permission));
           metrics.recordCacheRequest('GET', response.status);
           return response;
         }),
-      PUT: ({ headers, params, body }) =>
+      PUT: (request, server) =>
         trackRequest(async () => {
-          const tokenPermission = getTokenPermission(headers);
-          const cacheFile = getCacheFile(params.hash);
-          const contentLength = headers.get('Content-Length') ?? '';
+          const auth = authenticate(request, server);
+          const contentLength = request.headers.get('Content-Length') ?? '';
 
-          const response = await writeCache(
-            cacheFile,
-            tokenPermission,
-            body,
-            contentLength,
-            MAX_UPLOAD_BYTES,
-          );
+          const response =
+            auth.rejection ??
+            (await writeCache(
+              getCacheFile(request.params.hash),
+              auth.permission,
+              request.body,
+              contentLength,
+              MAX_UPLOAD_BYTES,
+            ));
           const uploadedBytes = response.status === 200 ? Number(contentLength) || 0 : 0;
           metrics.recordCacheRequest('PUT', response.status, uploadedBytes);
           return response;
         }),
     },
     '/v1/admin/tokens/:id': {
-      DELETE: ({ params, headers }) =>
+      DELETE: (request, server) =>
         trackRequest(() => {
-          const hasAdminRights = isAdmin(getAuthToken(headers));
-          return deleteToken(hasAdminRights, tokenStorage, params.id);
+          const auth = authenticate(request, server);
+          return auth.rejection ?? deleteToken(auth.isAdmin, tokenStorage, request.params.id);
         }),
     },
     '/v1/admin/tokens': {
-      GET: ({ headers }) =>
+      GET: (request, server) =>
         trackRequest(() => {
-          const hasAdminRights = isAdmin(getAuthToken(headers));
-          return listTokens(hasAdminRights, tokenStorage);
+          const auth = authenticate(request, server);
+          return auth.rejection ?? listTokens(auth.isAdmin, tokenStorage);
         }),
-      POST: (request) =>
+      POST: (request, server) =>
         trackRequest(async () => {
-          const hasAdminRights = isAdmin(getAuthToken(request.headers));
-          return addToken(hasAdminRights, tokenStorage, request.json.bind(request));
+          const auth = authenticate(request, server);
+          return auth.rejection ?? addToken(auth.isAdmin, tokenStorage, request.json.bind(request));
         }),
     },
   },

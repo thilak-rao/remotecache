@@ -37,7 +37,7 @@ The self-hosted Nx remote cache server reads all configuration from environment 
 
 ## Notes
 
-`ADMIN_TOKEN` is the only required variable. The server exits on startup if it's not set. Must be at least 16 characters (the server refuses to start otherwise); generate one with `openssl rand -hex 32`. There is no rate limiting on authentication — treat this value like a root credential.
+`ADMIN_TOKEN` is the only required variable. The server exits on startup if it's not set. Must be at least 16 characters (the server refuses to start otherwise); generate one with `openssl rand -hex 32`. Its entropy is what protects it: [authentication throttling](/guides/security/#authentication-throttling) does not slow a brute force, because a correct guess is always served. Treat it like a root credential; see the [security model](/guides/security/).
 
 `GET /health` has no configuration. It returns `OK` when the process is accepting requests. Use it for liveness only.
 
