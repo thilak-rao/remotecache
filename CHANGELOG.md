@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.2.0](https://github.com/thilak-rao/remotecache/compare/v3.1.0...v3.2.0) (2026-09-24)
+
+
+### Features
+
+* throttle auth failures and add a container HEALTHCHECK ([#39](https://github.com/thilak-rao/remotecache/issues/39)) ([a8fc88f](https://github.com/thilak-rao/remotecache/commit/a8fc88fe0223cb316f97e45c7e96aa3cdba2f40d))
+
 ## [3.1.0](https://github.com/thilak-rao/remotecache/compare/v3.0.0...v3.1.0) (2026-08-02)
 
 
