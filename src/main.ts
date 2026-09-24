@@ -267,21 +267,29 @@ const shutdown = async (signal: string) => {
   evictor?.stop();
   logger.info(`Received ${signal}, draining ${activeRequests} in-flight request(s)`);
   try {
-    // Bound both route-handler drain and Bun's connection drain; streamed
-    // responses can outlive the handler promise tracked above. Start
-    // `server.stop(false)` immediately so new connections are refused while
-    // existing requests are allowed to finish.
-    const gracefulStop = Promise.all([server.stop(false), waitForRequestsToDrain()]);
+    // Start `server.stop(false)` immediately so new connections are refused
+    // while existing requests finish. Its promise is not the drain signal: it
+    // never resolves while a keep-alive connection is still draining a body
+    // Bun answered early (e.g. a 409 sent before the upload arrived). Instead
+    // wait for the tracked handlers, then for `server.pendingRequests`, which
+    // still counts streamed responses being sent after their handler returned
+    // but not such a connection, and force-close whatever is left. Polling a
+    // counter every 50 ms is cheap and adds at most 50 ms to shutdown.
+    const gracefulStop = server.stop(false);
+    const drained = (async () => {
+      await waitForRequestsToDrain();
+      while (server.pendingRequests > 0) await Bun.sleep(50);
+    })();
     const stoppedGracefully = await Promise.race([
-      gracefulStop.then(() => true),
+      drained.then(() => true),
       Bun.sleep(SHUTDOWN_DRAIN_TIMEOUT_MS).then(() => false),
     ]);
 
     if (!stoppedGracefully) {
       logger.error(`Graceful shutdown exceeded ${SHUTDOWN_DRAIN_TIMEOUT_MS}ms; forcing close`);
-      void gracefulStop.catch(() => {});
-      await server.stop(true);
     }
+    void gracefulStop.catch(() => {});
+    await server.stop(true);
     process.exit(0);
   } catch (error) {
     exitOnError(error);

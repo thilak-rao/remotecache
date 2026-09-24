@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { baseEnv } from './spawn-server';
+import { baseEnv, E2E_ADMIN_TOKEN, spawnServer } from './spawn-server';
 
 const newHealthRequestGets200 = async (port: number): Promise<boolean> => {
   let responseText = '';
@@ -220,4 +220,116 @@ describe('graceful shutdown e2e', () => {
     expect(elapsed).toBeGreaterThanOrEqual(400);
     expect(elapsed).toBeLessThan(5000);
   }, 15000);
+
+  it('exits promptly on SIGTERM after a 409 whose body arrived after the response', async () => {
+    const port = 4033;
+    const hash = 'earlyconflicthash01';
+    const drainTimeoutMs = 3000;
+    const server = await spawnServer(port, { SHUTDOWN_DRAIN_TIMEOUT_MS: String(drainTimeoutMs) });
+    const auth = { Authorization: `Bearer ${E2E_ADMIN_TOKEN}` };
+    const first = await fetch(`${server.baseUrl}/v1/cache/${hash}`, {
+      method: 'PUT',
+      headers: auth,
+      body: 'first',
+    });
+    expect(first.status).toBe(200);
+
+    // Send the headers, pause, then send the body on a keep-alive connection.
+    // A server that answers 409 without reading the body responds during the
+    // pause and Bun drains the body afterwards; that connection then blocks a
+    // graceful stop, so SIGTERM waits out the full drain timeout with no
+    // request in flight. The pause makes this ordering deterministic on every
+    // OS (with fetch it depends on socket buffering).
+    let responseText = '';
+    let resolveStatusLine!: () => void;
+    const statusLine = new Promise<void>((resolve) => {
+      resolveStatusLine = resolve;
+    });
+    const socket = await Bun.connect({
+      hostname: '127.0.0.1',
+      port,
+      socket: {
+        data(_s, data) {
+          responseText += new TextDecoder().decode(data);
+          if (responseText.includes('\r\n')) resolveStatusLine();
+        },
+        close: () => resolveStatusLine(),
+        error: () => resolveStatusLine(),
+      },
+    });
+    const body = new Uint8Array(64 * 1024).fill(66);
+    socket.write(
+      `PUT /v1/cache/${hash} HTTP/1.1\r\n` +
+        `Host: 127.0.0.1:${port}\r\n` +
+        `Authorization: Bearer ${E2E_ADMIN_TOKEN}\r\n` +
+        `Content-Length: ${body.length}\r\n\r\n`,
+    );
+    await Bun.sleep(200);
+    // A short write would leave the body incomplete, a different state.
+    expect(socket.write(body)).toBe(body.length);
+    await Promise.race([statusLine, Bun.sleep(2000)]);
+    expect(responseText.split('\r\n')[0]).toContain('409');
+    await Bun.sleep(200);
+
+    const started = performance.now();
+    await server.stop();
+    const elapsed = performance.now() - started;
+    socket.end();
+
+    expect(elapsed).toBeLessThan(drainTimeoutMs / 2);
+  }, 15000);
+
+  it('delivers a download still streaming when SIGTERM arrives', async () => {
+    const port = 4034;
+    const hash = 'streamingdownload01';
+    const drainTimeoutMs = 5000;
+    const server = await spawnServer(port, { SHUTDOWN_DRAIN_TIMEOUT_MS: String(drainTimeoutMs) });
+    // Larger than loopback socket buffers, so the response cannot finish
+    // while the client is paused.
+    const artifact = new Uint8Array(32 * 1024 * 1024).fill(67);
+    const put = await fetch(`${server.baseUrl}/v1/cache/${hash}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${E2E_ADMIN_TOKEN}` },
+      body: artifact,
+    });
+    expect(put.status).toBe(200);
+
+    let received = 0;
+    let resolveClosed!: () => void;
+    const closed = new Promise<void>((resolve) => {
+      resolveClosed = resolve;
+    });
+    const socket = await Bun.connect({
+      hostname: '127.0.0.1',
+      port,
+      socket: {
+        data(_s, data) {
+          received += data.byteLength;
+        },
+        close: () => resolveClosed(),
+        error: () => resolveClosed(),
+      },
+    });
+    // Stop reading before the response starts, so it stays in flight after
+    // the handler has returned.
+    socket.pause();
+    socket.write(
+      `GET /v1/cache/${hash} HTTP/1.1\r\n` +
+        `Host: 127.0.0.1:${port}\r\n` +
+        `Authorization: Bearer ${E2E_ADMIN_TOKEN}\r\n` +
+        `Connection: close\r\n\r\n`,
+    );
+    await Bun.sleep(300);
+    expect(received).toBeLessThan(artifact.length);
+
+    const stopped = server.stop();
+    await Bun.sleep(300);
+    socket.resume();
+    await Promise.race([closed, Bun.sleep(drainTimeoutMs)]);
+    await stopped;
+
+    // Status line and headers precede the body, so a complete download
+    // delivers more than the artifact's byte count.
+    expect(received).toBeGreaterThan(artifact.length);
+  }, 20000);
 });
