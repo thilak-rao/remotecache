@@ -7,6 +7,7 @@ describe('cacheResultLabel', () => {
     expect(cacheResultLabel('GET', 404)).toBe('miss');
     expect(cacheResultLabel('GET', 403)).toBe('forbidden');
     expect(cacheResultLabel('GET', 400)).toBe('bad_request');
+    expect(cacheResultLabel('GET', 429)).toBe('throttled');
     expect(cacheResultLabel('GET', 500)).toBe('error');
     expect(cacheResultLabel('GET', 418)).toBe('other');
   });
@@ -17,6 +18,7 @@ describe('cacheResultLabel', () => {
     expect(cacheResultLabel('PUT', 403)).toBe('forbidden');
     expect(cacheResultLabel('PUT', 409)).toBe('immutable');
     expect(cacheResultLabel('PUT', 413)).toBe('too_large');
+    expect(cacheResultLabel('PUT', 429)).toBe('throttled');
     expect(cacheResultLabel('PUT', 400)).toBe('bad_request');
     expect(cacheResultLabel('PUT', 503)).toBe('error');
   });
@@ -33,6 +35,8 @@ describe('MetricsRegistry', () => {
     expect(text).toContain('nx_cache_requests_total{method="GET",result="miss"} 0');
     expect(text).toContain('nx_cache_requests_total{method="PUT",result="stored"} 0');
     expect(text).toContain('nx_cache_requests_total{method="PUT",result="forbidden"} 0');
+    expect(text).toContain('nx_cache_requests_total{method="GET",result="throttled"} 0');
+    expect(text).toContain('nx_cache_requests_total{method="PUT",result="throttled"} 0');
     expect(text).toContain('# TYPE nx_cache_uploaded_bytes_total counter');
     expect(text).toContain('nx_cache_uploaded_bytes_total 0');
     expect(text.endsWith('\n')).toBe(true);
@@ -92,6 +96,19 @@ describe('MetricsRegistry', () => {
     // Gauge, not counter: the latest sweep wins.
     expect(text).toContain('nx_cache_size_bytes 400');
     expect(text).toContain('# TYPE nx_cache_size_bytes gauge');
+  });
+
+  it('counts requests rejected by the auth throttle, seeded at zero', () => {
+    const registry = new MetricsRegistry();
+    // Seeded so alerting on rate() works before the first brute-force attempt.
+    expect(registry.render()).toContain('nx_cache_auth_throttled_total 0');
+
+    registry.recordAuthThrottled();
+    registry.recordAuthThrottled();
+
+    const text = registry.render();
+    expect(text).toContain('# TYPE nx_cache_auth_throttled_total counter');
+    expect(text).toContain('nx_cache_auth_throttled_total 2');
   });
 
   it('seeds eviction metrics at zero before any sweep', () => {

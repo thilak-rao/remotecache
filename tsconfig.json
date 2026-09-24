@@ -8,5 +8,5 @@
     "types": ["bun"],
     "skipLibCheck": true
   },
-  "include": ["src", "e2e"]
+  "include": ["src", "e2e", "docker-healthcheck.ts"]
 }

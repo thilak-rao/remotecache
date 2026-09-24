@@ -2,7 +2,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { baseEnv } from './spawn-server';
+import { baseEnv, runHealthcheck } from './spawn-server';
+
+const PORT = 4020;
 
 let dir: string;
 let baseUrl: string;
@@ -38,7 +40,7 @@ describe('tls e2e', () => {
       env: {
         ...baseEnv(),
         ADMIN_TOKEN: 'e2e-admin-token-0123456789abcdef',
-        PORT: '4020',
+        PORT: String(PORT),
         CACHE_DIR: join(dir, 'cache'),
         TOKENS_DB_PATH: join(dir, 'tokens.sqlite'),
         TLS_CERT_PATH: certPath,
@@ -51,7 +53,7 @@ describe('tls e2e', () => {
     let up = false;
     for (let i = 0; i < 50; i++) {
       try {
-        const res = await fetch('https://127.0.0.1:4020/health', {
+        const res = await fetch(`https://127.0.0.1:${PORT}/health`, {
           tls: { rejectUnauthorized: false },
         });
         if (res.ok) {
@@ -62,7 +64,7 @@ describe('tls e2e', () => {
       await Bun.sleep(100);
     }
     if (!up) throw new Error('TLS server did not start in time');
-    baseUrl = 'https://127.0.0.1:4020';
+    baseUrl = `https://127.0.0.1:${PORT}`;
   });
 
   afterAll(() => {
@@ -75,5 +77,18 @@ describe('tls e2e', () => {
     const res = await fetch(`${baseUrl}/health`, { tls: { rejectUnauthorized: false } });
     expect(res.status).toBe(200);
     expect(await res.text()).toBe('OK');
+  });
+
+  it('reports healthy from the container probe when direct TLS is enabled', async () => {
+    // Containers often inherit an outbound proxy; routing the loopback probe
+    // through it would report the container unhealthy forever.
+    const probe = await runHealthcheck({
+      HTTPS_PROXY: 'http://127.0.0.1:9',
+      PORT: String(PORT),
+      TLS_CERT_PATH: join(dir, 'cert.pem'),
+      TLS_KEY_PATH: join(dir, 'key.pem'),
+    });
+
+    expect(probe).toEqual({ exitCode: 0, stderr: '' });
   });
 });

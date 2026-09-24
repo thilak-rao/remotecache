@@ -18,7 +18,7 @@ RUN bun install --frozen-lockfile --production
 
 COPY tsconfig.json ./
 COPY src ./src
-COPY docker-entrypoint.sh ./
+COPY docker-entrypoint.sh docker-healthcheck.ts ./
 
 # Create the writable image-local data/cache directories. Runtime mounts are
 # prepared by docker-entrypoint.sh before it drops to the `bun` user.
@@ -27,5 +27,11 @@ RUN chmod +x /app/docker-entrypoint.sh \
     && chown -R bun:bun /app
 
 EXPOSE 3000
+
+# Probe logic: see docker-healthcheck.ts. Health checks skip the entrypoint, so
+# drop to `bun` here too: /app is bun-writable and must never run as root.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD ["/bin/sh", "-c", "if [ \"$(id -u)\" = 0 ]; then exec su-exec bun:bun bun /app/docker-healthcheck.ts; fi; exec bun /app/docker-healthcheck.ts"]
+
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["bun", "/app/src/main.ts"]

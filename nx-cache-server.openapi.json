@@ -59,7 +59,7 @@
     },
     "/metrics": {
       "get": {
-        "description": "Prometheus metrics in the text exposition format (version 0.0.4). Unauthenticated and meant to be scraped over a private network; restrict it to your metrics collector and never expose it publicly. Reports cache request counters by method and result (the GET hit/miss split is the cache hit-rate, and PUT 'forbidden' includes writes rejected for missing, invalid, or readonly tokens), total bytes accepted by successful uploads, filesystem eviction counters (nx_cache_evicted_entries_total and nx_cache_evicted_bytes_total), and the latest filesystem cache size gauge (nx_cache_size_bytes).",
+        "description": "Prometheus metrics in the text exposition format (version 0.0.4). Unauthenticated and meant to be scraped over a private network; restrict it to your metrics collector and never expose it publicly. Reports cache request counters by method and result (the GET hit/miss split is the cache hit-rate; PUT 'forbidden' counts every write rejected with 403, whether the token was missing, invalid, or readonly; 'throttled' counts cache requests rejected with 429 by the authentication throttle), total bytes accepted by successful uploads, requests rejected by the authentication throttle (nx_cache_auth_throttled_total), filesystem eviction counters (nx_cache_evicted_entries_total and nx_cache_evicted_bytes_total), and the latest filesystem cache size gauge (nx_cache_size_bytes).",
         "operationId": "getMetrics",
         "security": [],
         "responses": {
@@ -115,6 +115,9 @@
           },
           "413": {
             "$ref": "#/components/responses/PayloadTooLarge"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -190,6 +193,9 @@
               }
             }
           },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
+          },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
           }
@@ -229,6 +235,9 @@
           },
           "403": {
             "$ref": "#/components/responses/AccessForbidden"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           }
         }
       },
@@ -269,6 +278,9 @@
           },
           "409": {
             "$ref": "#/components/responses/Conflict"
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -315,6 +327,9 @@
                 }
               }
             }
+          },
+          "429": {
+            "$ref": "#/components/responses/TooManyRequests"
           },
           "500": {
             "$ref": "#/components/responses/InternalServerError"
@@ -439,6 +454,24 @@
       },
       "PayloadTooLarge": {
         "description": "Payload too large",
+        "content": {
+          "text/plain": {
+            "schema": {
+              "$ref": "#/components/schemas/PlainTextError"
+            }
+          }
+        }
+      },
+      "TooManyRequests": {
+        "description": "Too many failed authentication attempts from this client address (IPv6 clients are counted per /64 prefix). Only authentication failures count toward the limit; requests presenting a valid token are never throttled. Retry after the number of seconds in the Retry-After header.",
+        "headers": {
+          "Retry-After": {
+            "description": "Seconds to wait before retrying.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        },
         "content": {
           "text/plain": {
             "schema": {

@@ -19,7 +19,7 @@ The five core functions:
 | `listTokens`  | Return all token IDs and permissions |
 | `deleteToken` | Remove a token by id                 |
 
-Each takes its dependencies as parameters and returns a `Response`. That's what makes them unit-testable in isolation; the handlers have no logic of their own.
+Each takes its dependencies as parameters and returns a `Response`. That's what makes them unit-testable in isolation. The one step a handler takes itself is `authenticate()`: it resolves the request's token, and when the auth throttle rejects an authentication failure the handler returns that `429` instead of calling the function.
 
 ## Response factories
 
@@ -28,6 +28,7 @@ Every HTTP response comes from a factory exported by `src/responses.ts`:
 ```
 okResponse  badRequest  conflictError  accessForbidden
 notFoundError  payloadTooLargeError  internalServerError  noContentResponse
+tooManyRequests
 ```
 
 Handlers never call `new Response` directly. Status codes, content types, and body formatting all live in one place.

@@ -23,6 +23,10 @@ export class TokenStorage {
   readonly #db: Database;
 
   constructor(dbPath: string = './data/nx-cache-server-tokens.sqlite') {
+    // SQLite opens an empty filename as a connection-private temporary database:
+    // tokens would silently vanish on restart while /ready stays green.
+    if (dbPath.trim() === '') throw new Error('dbPath must not be blank.');
+
     mkdirSync(dirname(dbPath), { recursive: true });
 
     this.#db = new Database(dbPath, { create: true, strict: true });
@@ -133,16 +137,16 @@ export class TokenStorage {
     }
   }
 
+  /**
+   * Look up a token by its plaintext value. Returns `null` for an unknown
+   * token and throws on a database error, so callers can tell a fault from a
+   * wrong token (the auth throttle counts only the latter).
+   */
   findToken(value: string): TokenSummary | null {
     const selectStatement = this.#db.query<TokenSummary, Pick<TokenRecord, 'value'>>(
       'SELECT id, permission FROM tokens WHERE value = $value LIMIT 1',
     );
 
-    try {
-      return selectStatement.get({ value: hashToken(value) }) ?? null;
-    } catch (error) {
-      logger.error(error);
-      return null;
-    }
+    return selectStatement.get({ value: hashToken(value) }) ?? null;
   }
 }

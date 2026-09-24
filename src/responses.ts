@@ -33,6 +33,16 @@ export function payloadTooLargeError(message: string) {
   });
 }
 
+export function tooManyRequests(message: string, retryAfterSeconds: number) {
+  return new Response(message, {
+    status: 429,
+    headers: {
+      'Content-Type': 'text/plain',
+      'Retry-After': retryAfterSeconds.toString(),
+    },
+  });
+}
+
 export function serviceUnavailable(message: string) {
   return new Response(message, {
     status: 503,

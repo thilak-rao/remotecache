@@ -127,6 +127,13 @@ describe('TokenStorage', () => {
     });
   });
 
+  it('rejects a blank dbPath instead of opening a temporary database', () => {
+    // SQLite opens an empty filename as a private temporary database, so every
+    // token would silently vanish on restart.
+    expect(() => new TokenStorage('')).toThrow('dbPath must not be blank');
+    expect(() => new TokenStorage('  ')).toThrow('dbPath must not be blank');
+  });
+
   it('checks readiness through the operational token columns', async () => {
     const dbPath = await freshDbPath();
     const storage = new TokenStorage(dbPath);

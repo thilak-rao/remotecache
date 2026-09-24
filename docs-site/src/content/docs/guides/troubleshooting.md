@@ -27,7 +27,7 @@ The bearer token is missing, wrong, or lacks permission for the operation.
 - On `PUT /v1/cache/:hash`: the request does not have a valid token with `full` permission. The token may be missing or invalid, or it may be a valid `readonly` token. The response does not distinguish between these cases. If this shows up in CI, check the token supplied to the job and its permission; see [CI recipes](/guides/ci-recipes/).
 - On `/v1/admin/tokens`: only the `ADMIN_TOKEN` value works, not cache tokens.
 
-The `nx_cache_requests_total{method="PUT",result="forbidden"}` metric counts all of these forbidden writes. It can show the rate and timing of failures, but it cannot tell whether a token was missing, invalid, or `readonly`.
+The `nx_cache_requests_total{method="PUT",result="forbidden"}` metric counts these `403` writes. It can show the rate and timing of failures, but it cannot tell whether a token was missing, invalid, or `readonly`. Once a client address trips the [authentication throttle](#429-too-many-failed-authentication-attempts), its missing- or invalid-token writes return `429` and are counted as `result="throttled"` instead.
 
 ## 409 `Cannot override an existing record`
 
@@ -49,6 +49,10 @@ A cache miss. Normal on first builds and after eviction. If your hit rate is une
 
 The artifact is larger than `MAX_UPLOAD_BYTES` (default 500 MiB). Raise the cap in the server's environment if the artifact is legitimate; see [Configuration](/guides/configuration/).
 
+## 429 `Too many failed authentication attempts`
+
+The client address exceeded 10 failed authentication attempts within 60 seconds. Requests with a valid token are never throttled, so a `429` means the token being sent is missing, wrong, or was deleted — in CI, check `NX_SELF_HOSTED_REMOTE_CACHE_ACCESS_TOKEN`. Fixing the token restores service immediately, since the block only applies to unauthenticated requests. Unauthenticated requests from the address recover once the `Retry-After` window passes; valid traffic does not shorten it.
+
 ## 503 `Not Ready` from `/ready`
 
 The readiness probe uses the existing SQLite connection to read the operational `tokens` table columns used at runtime (`id`, `value`, and `permission`), so a missing or damaged table fails readiness. This is a read probe and does not test token-database write access. It then probes the configured cache backend. The response body is static; the actual dependency error is in the server logs.
@@ -64,7 +68,7 @@ The server fails fast on invalid configuration and prints the reason to stderr:
 - `CACHE_MAX_BYTES`/`CACHE_TTL_HOURS` set together with `STORAGE_STRATEGY=s3` or `gcs` (eviction is filesystem-only).
 - An unknown `STORAGE_STRATEGY` value.
 - `CACHE_DIR` cannot be created or does not support writable hard-link commits.
-- The directory for `TOKENS_DB_PATH` cannot be created, or SQLite cannot open the token database.
+- `TOKENS_DB_PATH` is set but blank (SQLite would otherwise open a private temporary database that vanishes on restart), its directory cannot be created, or SQLite cannot open the token database.
 
 ## Permission errors on Docker volumes
 

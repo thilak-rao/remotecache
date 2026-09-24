@@ -44,6 +44,24 @@ jobs:
           docker logs remotecache-ci
           exit 1
 
+      - name: Wait for HEALTHCHECK to report healthy
+        run: |
+          for attempt in {1..60}; do
+            status="$(docker inspect -f '{{.State.Health.Status}}' remotecache-ci || echo missing)"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          echo "container health: ${status}"
+          docker inspect -f '{{json .State.Health}}' remotecache-ci || true
+          docker logs remotecache-ci || true
+          exit 1
+
       - name: Stop Docker container
         if: always()
         run: docker rm -f remotecache-ci || true
@@ -141,7 +159,7 @@ jobs:
         run: |
           docker run -d --name minio -p 9000:9000 \
             -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin \
-            minio/minio:RELEASE.2025-09-07T16-13-09Z server /data
+            pgsty/minio:RELEASE.2026-08-04T00-00-00Z@sha256:b6bfe7239bfc83fb90d31612d9704d86039dd714f7904b3f1ad68f211e602372 server /data
           for attempt in {1..30}; do
             if curl -fsS http://127.0.0.1:9000/minio/health/live; then exit 0; fi
             sleep 1
