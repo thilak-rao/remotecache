@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.2.2](https://github.com/thilak-rao/remotecache/compare/v3.2.1...v3.2.2) (2026-09-24)
+
+
+### Bug Fixes
+
+* **docker:** upgrade openssl in the runtime image ([#46](https://github.com/thilak-rao/remotecache/issues/46)) ([787a8cb](https://github.com/thilak-rao/remotecache/commit/787a8cb448db4fdf63871867617daa497646aa9b))
+* **server:** stop graceful shutdown hanging after an early rejection ([#45](https://github.com/thilak-rao/remotecache/issues/45)) ([eb1e4b3](https://github.com/thilak-rao/remotecache/commit/eb1e4b3815440bed1ff326968419afc80fcaf6ed))
+
 ## [3.2.1](https://github.com/thilak-rao/remotecache/compare/v3.2.0...v3.2.1) (2026-09-24)
 
 
