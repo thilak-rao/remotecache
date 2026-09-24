@@ -101,7 +101,7 @@ describe.skipIf(!ENDPOINT)('s3 storage e2e (MinIO)', () => {
     expect(get.status).toBe(200);
     // No Content-Length assertion here: Bun.serve streams a ReadableStream body
     // with Transfer-Encoding: chunked (no Content-Length) for BOTH backends,
-    // filesystem included, so this would assert a property Bun 1.3.14 cannot
+    // filesystem included, so this would assert a property Bun 1.4.2 cannot
     // provide. Upstream Bun PR #27262 (closed unmerged) tracks preserving a
     // user-set Content-Length on streamed responses. The byte-exact check below
     // is the real integrity proof.
