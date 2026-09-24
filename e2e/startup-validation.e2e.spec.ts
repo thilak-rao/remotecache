@@ -49,6 +49,15 @@ describe('startup validation e2e', () => {
     expect(stderr).toContain('at least 16 characters');
   });
 
+  it('refuses to start when TOKENS_DB_PATH is blank', async () => {
+    // SQLite opens a blank filename as a private temporary database, so tokens
+    // would vanish on restart while /ready stays green.
+    const { exitCode, stderr } = await runStartup({ TOKENS_DB_PATH: ' ' });
+
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain('TOKENS_DB_PATH): dbPath must not be blank');
+  });
+
   it('refuses to start on an unknown STORAGE_STRATEGY', async () => {
     const { exitCode, stderr } = await runStartup({ STORAGE_STRATEGY: 'azure' });
 

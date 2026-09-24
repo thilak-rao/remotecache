@@ -23,6 +23,10 @@ export class TokenStorage {
   readonly #db: Database;
 
   constructor(dbPath: string = './data/nx-cache-server-tokens.sqlite') {
+    // SQLite opens an empty filename as a connection-private temporary database:
+    // tokens would silently vanish on restart while /ready stays green.
+    if (dbPath.trim() === '') throw new Error('dbPath must not be blank.');
+
     mkdirSync(dirname(dbPath), { recursive: true });
 
     this.#db = new Database(dbPath, { create: true, strict: true });

@@ -32,8 +32,9 @@ const CACHE_SWEEP_INTERVAL_MS = Number(Bun.env.CACHE_SWEEP_INTERVAL_MS ?? '60000
 const CACHE_TTL_MS = CACHE_TTL_HOURS !== undefined ? CACHE_TTL_HOURS * 3_600_000 : undefined;
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
 
-function exitOnError(error: unknown): never {
-  logger.error(error instanceof Error ? error.message : String(error));
+function exitOnError(error: unknown, context?: string): never {
+  const message = error instanceof Error ? error.message : String(error);
+  logger.error(context ? `${context}: ${message}` : message);
   process.exit(1);
 }
 
@@ -97,7 +98,7 @@ let tokenStorage: TokenStorage;
 try {
   tokenStorage = new TokenStorage(TOKENS_DB_PATH);
 } catch (error) {
-  exitOnError(error);
+  exitOnError(error, 'Error: cannot open the token database (TOKENS_DB_PATH)');
 }
 const metrics = new MetricsRegistry();
 
