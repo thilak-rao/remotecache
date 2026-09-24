@@ -4,7 +4,7 @@ import { E2E_ADMIN_TOKEN, spawnServer, type SpawnedServer } from './spawn-server
 // Skipped unless S3_E2E_ENDPOINT is set. Run locally with:
 //   docker run -d --name minio -p 9000:9000 \
 //     -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin \
-//     minio/minio:RELEASE.2025-09-07T16-13-09Z server /data
+//     pgsty/minio:RELEASE.2026-08-04T00-00-00Z server /data
 //   AWS_ACCESS_KEY_ID=minioadmin AWS_SECRET_ACCESS_KEY=minioadmin \
 //     aws --endpoint-url http://127.0.0.1:9000 --region us-east-1 s3 mb s3://remotecache-e2e
 //   S3_E2E_ENDPOINT=http://127.0.0.1:9000 bun test e2e/s3-minio.e2e.spec.ts
