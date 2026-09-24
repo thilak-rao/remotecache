@@ -31,6 +31,24 @@ export function metricValue(text: string, series: string): number {
 }
 
 /**
+ * Runs the container HEALTHCHECK probe (`docker-healthcheck.ts`) once against
+ * a server started by the caller. The 4s timeout stays under bun:test's 5s
+ * default per-test timeout.
+ */
+export async function runHealthcheck(
+  env: Record<string, string>,
+): Promise<{ exitCode: number; stderr: string }> {
+  const probe = Bun.spawn(['bun', 'docker-healthcheck.ts'], {
+    env: { ...baseEnv(), ...env },
+    stdout: 'ignore',
+    stderr: 'pipe',
+    timeout: 4_000,
+  });
+  const [exitCode, stderr] = await Promise.all([probe.exited, new Response(probe.stderr).text()]);
+  return { exitCode, stderr };
+}
+
+/**
  * Starts `src/main.ts` in a child process with an isolated temp dir for the
  * cache and token DB. Each spec gets its own server and port, so specs never
  * share module state or depend on import order.

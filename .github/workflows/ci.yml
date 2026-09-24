@@ -44,6 +44,24 @@ jobs:
           docker logs remotecache-ci
           exit 1
 
+      - name: Wait for HEALTHCHECK to report healthy
+        run: |
+          for attempt in {1..60}; do
+            status="$(docker inspect -f '{{.State.Health.Status}}' remotecache-ci || echo missing)"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              break
+            fi
+            sleep 2
+          done
+
+          echo "container health: ${status}"
+          docker inspect -f '{{json .State.Health}}' remotecache-ci || true
+          docker logs remotecache-ci || true
+          exit 1
+
       - name: Stop Docker container
         if: always()
         run: docker rm -f remotecache-ci || true

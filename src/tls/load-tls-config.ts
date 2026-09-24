@@ -1,3 +1,5 @@
+import { directTlsEnabled } from '../config';
+
 export interface TlsConfig {
   cert: ReturnType<typeof Bun.file>;
   key: ReturnType<typeof Bun.file>;
@@ -15,14 +17,14 @@ export interface TlsConfig {
  * direct exposure, local testing, or containers that terminate TLS themselves.
  */
 export async function loadTlsConfig(env: typeof Bun.env): Promise<TlsConfig | undefined> {
-  const certPath = env.TLS_CERT_PATH;
-  const keyPath = env.TLS_KEY_PATH;
-
-  if (!certPath && !keyPath) return undefined;
-
-  if (!certPath || !keyPath) {
-    throw new Error('TLS misconfigured: set both TLS_CERT_PATH and TLS_KEY_PATH, or neither.');
+  if (!directTlsEnabled(env)) {
+    if (env.TLS_CERT_PATH || env.TLS_KEY_PATH) {
+      throw new Error('TLS misconfigured: set both TLS_CERT_PATH and TLS_KEY_PATH, or neither.');
+    }
+    return undefined;
   }
+
+  const { TLS_CERT_PATH: certPath, TLS_KEY_PATH: keyPath } = env;
 
   const cert = Bun.file(certPath);
   const key = Bun.file(keyPath);

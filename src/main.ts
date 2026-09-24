@@ -9,6 +9,7 @@ import { createCacheStorage } from './cache/create-cache-storage';
 import { listTokens } from './token/list-tokens';
 import { logger } from './logger';
 import { internalServerError, notFoundError } from './responses';
+import { bindAddress, listenPort } from './config';
 import { isValidHash } from './cache/is-valid-hash';
 import { safeEqual } from './safe-equal';
 import { MetricsRegistry } from './metrics/metrics-registry';
@@ -21,8 +22,8 @@ import { createCacheEvictor, type CacheEvictor } from './cache/eviction';
 import { FileSystemStrategy } from './cache/storage-strategy/file-system';
 
 const ADMIN_TOKEN = Bun.env.ADMIN_TOKEN;
-const PORT = Number(Bun.env.PORT ?? '3000');
-const HOSTNAME = Bun.env.BIND_ADDRESS ?? '0.0.0.0';
+const PORT = listenPort(Bun.env);
+const HOSTNAME = bindAddress(Bun.env);
 const TOKENS_DB_PATH = Bun.env.TOKENS_DB_PATH;
 const MAX_UPLOAD_BYTES = Number(Bun.env.MAX_UPLOAD_BYTES ?? '524288000');
 const SHUTDOWN_DRAIN_TIMEOUT_MS = Number(Bun.env.SHUTDOWN_DRAIN_TIMEOUT_MS ?? '30000');
