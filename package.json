@@ -8,13 +8,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aws-sdk/credential-providers": "3.1140.0",
+    "@aws-sdk/credential-providers": "3.1152.0",
     "@google-cloud/storage": "7.21.0"
   },
   "devDependencies": {
-    "@types/bun": "1.4.2",
-    "oxfmt": "0.70.0",
-    "oxlint": "1.85.0",
+    "@types/bun": "1.4.3",
+    "oxfmt": "0.73.0",
+    "oxlint": "1.88.0",
     "typescript": "6.0.3"
   },
   "overrides": {
