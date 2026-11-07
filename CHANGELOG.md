@@ -1,5 +1,14 @@
 # Changelog
 
+## [3.2.3](https://github.com/thilak-rao/remotecache/compare/v3.2.2...v3.2.3) (2026-11-07)
+
+
+### Bug Fixes
+
+* **chart:** meet the restricted pod security standard and stop automounting the sa token ([40ebdb0](https://github.com/thilak-rao/remotecache/commit/40ebdb0519e66d2c3320aa8d9a89d337bee92f16))
+* **docker:** refuse symlinked data paths before the root chown ([e0494a5](https://github.com/thilak-rao/remotecache/commit/e0494a587c300da23fb223dd55c938add824ef4d))
+* **s3:** shorten presigned upload expiry and keep its url out of errors ([d3b5481](https://github.com/thilak-rao/remotecache/commit/d3b54812b13eff8686e9fe6b611f6b4d3109f1ce))
+
 ## [3.2.2](https://github.com/thilak-rao/remotecache/compare/v3.2.1...v3.2.2) (2026-09-24)
 
 
