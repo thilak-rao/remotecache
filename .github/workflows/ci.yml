@@ -77,6 +77,25 @@ jobs:
             test -w /app/data
           '
 
+      # bun can write /app/data, so it can plant a symlink there; root's chown
+      # on the next restart must refuse it instead of following it.
+      - name: Check the entrypoint refuses a planted symlink
+        run: |
+          docker exec -u bun remotecache-ci sh -eu -c '
+            rm -f /app/data/nx-cache-server-tokens.sqlite
+            ln -s /app/docker-entrypoint.sh /app/data/nx-cache-server-tokens.sqlite
+          '
+          docker restart remotecache-ci
+          exit_code="$(docker wait remotecache-ci)"
+          docker logs --tail 5 remotecache-ci || true
+          if [ "$exit_code" = "0" ]; then
+            echo "entrypoint accepted a symlinked tokens DB"
+            exit 1
+          fi
+          owner="$(docker cp remotecache-ci:/app/docker-entrypoint.sh - | tar --numeric-owner -tvf - | awk '{print $2}')"
+          echo "entrypoint owner: ${owner}"
+          test "$owner" = "0/0"
+
       - name: Stop Docker container
         if: always()
         run: docker rm -f remotecache-ci || true

@@ -23,7 +23,7 @@ ghcr.io/thilak-rao/remotecache
 
 The old main-branch `latest` behavior is intentionally retired. For production, pin `:X.Y.Z` or `:X.Y`; use `:latest` only when you deliberately want the newest stable release.
 
-Images are published for `linux/amd64` and `linux/arm64`. Release builds include BuildKit SBOM and provenance attestations. The Bun base image is pinned by digest. The entrypoint prepares mounted data directories, then starts the server as the non-root `bun` user.
+Images are published for `linux/amd64` and `linux/arm64`. Release builds include BuildKit SBOM and provenance attestations. The Bun base image is pinned by digest. The entrypoint prepares mounted data directories, then starts the server as the non-root `bun` user. Because that preparation runs as root, the entrypoint exits with an error if `CACHE_DIR`, the `TOKENS_DB_PATH` directory, or `TOKENS_DB_PATH` itself is a symlink, so the `bun` user cannot redirect it to a root-owned file. Mount real directories at those paths.
 
 ## Run
 
