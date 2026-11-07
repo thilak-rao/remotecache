@@ -156,6 +156,11 @@ jobs:
       - name: Load image into kind
         run: kind load docker-image remotecache:kind-ci --name chart-testing
 
+      # Enforce the restricted Pod Security Standard so the server pod and the
+      # test hook pod are rejected if they drift from it.
+      - name: Enforce restricted Pod Security on the namespace
+        run: kubectl label namespace default pod-security.kubernetes.io/enforce=restricted
+
       - name: Install chart
         run: |
           helm install rc charts/remotecache \

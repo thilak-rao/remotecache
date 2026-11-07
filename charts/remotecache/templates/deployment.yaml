@@ -66,6 +66,7 @@ spec:
         {{- end }}
     spec:
       serviceAccountName: {{ include "remotecache.serviceAccountName" . }}
+      automountServiceAccountToken: false
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
