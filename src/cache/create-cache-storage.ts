@@ -17,7 +17,11 @@ export type S3Resolved = {
   | { mode: 'chain' }
 );
 
-type GcsCredentials = NonNullable<StorageOptions['credentials']> & {
+// Service-account JSON only; GDCH credentials have no client_email.
+type GcsCredentials = Exclude<
+  NonNullable<StorageOptions['credentials']>,
+  { type: 'gdch_service_account' }
+> & {
   client_email: string;
   private_key: string;
 };
