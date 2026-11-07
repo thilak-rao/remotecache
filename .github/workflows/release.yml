@@ -14,10 +14,9 @@ concurrency:
 jobs:
   release-please:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      issues: write
-      pull-requests: write
+    # Release Please authenticates with the GitHub App token minted below;
+    # GITHUB_TOKEN is never used, so it gets no scopes.
+    permissions: {}
     steps:
       - name: Mint an installation token
         id: app-token
