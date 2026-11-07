@@ -100,6 +100,53 @@ describe('S3Strategy', () => {
     ).rejects.toThrow('does not support conditional writes');
   });
 
+  it('presigns upload URLs that expire within five minutes', async () => {
+    let uploadUrl = '';
+    globalThis.fetch = Object.assign(
+      async (input: string | URL | Request) => {
+        uploadUrl = String(input);
+        return new Response(null, { status: 200 });
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+
+    await createStrategy().writeStream('hash', new Blob(['data']).stream(), 4);
+
+    expect(Number(new URL(uploadUrl).searchParams.get('X-Amz-Expires'))).toBeLessThanOrEqual(300);
+  });
+
+  // A logged network error must not leak a presigned URL: anyone reading the
+  // logs could otherwise PUT a poisoned artifact to that hash until it expires.
+  it('keeps the presigned URL out of network errors', async () => {
+    const strategy = new S3Strategy({
+      bucket: 'bucket',
+      endpoint: 'http://127.0.0.1:1',
+      credentials: { accessKeyId: 'access', secretAccessKey: 'secret', sessionToken: 'session' },
+    });
+
+    const error = await strategy.writeStream('hash', new Blob(['data']).stream(), 4).then(
+      () => null,
+      (err: unknown) => err,
+    );
+
+    expect(error).toBeInstanceOf(Error);
+    expect(Bun.inspect(error)).not.toContain('X-Amz-Signature');
+    expect(Bun.inspect(error)).not.toContain('X-Amz-Security-Token');
+  });
+
+  // write-cache maps its own body-stream errors (e.g. a Content-Length overrun)
+  // to 400, so the URL scrubbing must not replace them.
+  it('passes body-stream errors through unchanged', async () => {
+    const streamError = new Error('body too long');
+    globalThis.fetch = Object.assign(async () => Promise.reject(streamError), {
+      preconnect: originalFetch.preconnect,
+    });
+
+    await expect(createStrategy().writeStream('hash', new Blob(['data']).stream(), 4)).rejects.toBe(
+      streamError,
+    );
+  });
+
   it('checks bucket readiness by listing at most one object', async () => {
     let listInput: Bun.S3ListObjectsOptions | null | undefined;
     s3Prototype.exists = () => Promise.resolve(false);
