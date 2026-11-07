@@ -130,7 +130,11 @@ jobs:
         run: helm template rc charts/remotecache -f charts/remotecache/ci/extras-values.yaml
 
       - name: Install kubeconform
-        run: curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz | tar xz kubeconform
+        # SHA-256 from the v0.8.0 release's CHECKSUMS file.
+        run: |
+          curl -fsSLo kubeconform.tar.gz https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz
+          echo "9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883  kubeconform.tar.gz" | sha256sum -c -
+          tar xzf kubeconform.tar.gz kubeconform
 
       - name: Validate manifests with kubeconform
         run: |
