@@ -77,6 +77,10 @@ overwriting the first committed object. The GCS strategy uses `ifGenerationMatch
 Cloud Storage rejects writes when an object already exists for the hash. The server maps these
 object-storage precondition failures to the same `409` response as the filesystem strategy.
 
+S3 uploads go through a presigned `PUT` URL that expires 5 minutes after signing. When an upload
+fails at the network level, the logged error omits that URL, so log readers cannot reuse it to write
+to the hash.
+
 ## Trust boundaries: containing cache poisoning
 
 CVE-2025-36852 (CREEP) is an architectural flaw in single-credential cache plugins: a PR workflow

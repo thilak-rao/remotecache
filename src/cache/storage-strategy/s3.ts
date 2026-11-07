@@ -14,6 +14,13 @@ export interface S3StrategyOptions {
 
 const REFRESH_WINDOW_MS = 5 * 60 * 1000;
 
+/**
+ * Lifetime of the presigned URL for an upload. S3 checks it when the request
+ * arrives, and the upload starts right after signing, so a short window only
+ * limits replay of a leaked URL.
+ */
+const PRESIGNED_UPLOAD_EXPIRES_IN_SECONDS = 300;
+
 /** True when temporary credentials are missing or within the refresh window of expiry. */
 export function shouldRefreshCredentials(expiration: number | null, now: number): boolean {
   if (expiration === null) return false;
@@ -96,14 +103,30 @@ export class S3Strategy implements CacheStorageStrategy {
     // Single attempt, deliberately: the body is a one-shot stream, so a retry
     // would have to buffer the whole upload, and Nx treats remote-cache
     // failures as soft (the client falls back to a cache miss).
-    const response = await fetch(client.presign(hash, { method: 'PUT' }), {
-      method: 'PUT',
-      headers: {
-        'Content-Length': String(contentLength),
-        'If-None-Match': '*',
-      },
-      body: stream,
-    });
+    let response: Response;
+    try {
+      response = await fetch(
+        client.presign(hash, { method: 'PUT', expiresIn: PRESIGNED_UPLOAD_EXPIRES_IN_SECONDS }),
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Length': String(contentLength),
+            'If-None-Match': '*',
+          },
+          body: stream,
+        },
+      );
+    } catch (error) {
+      // Body-stream errors (e.g. a Content-Length overrun) reject fetch as-is
+      // and must reach the caller unchanged. Bun's network errors instead carry
+      // the request URL in `path`; that URL is a presigned PUT, so a logged
+      // error would let a log reader upload to this hash. Rethrow those
+      // without the URL (and without `cause`).
+      if (!(error instanceof Error) || !('path' in error)) throw error;
+      const { code } = error as { code?: string };
+      const { message } = error;
+      throw new Error(`S3 write request failed: ${code ?? 'network error'}: ${message}`);
+    }
 
     if (response.ok) {
       await response.body?.cancel();
