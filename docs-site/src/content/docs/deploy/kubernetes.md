@@ -92,6 +92,8 @@ the pod entirely.
 
 The container now runs with `readOnlyRootFilesystem: true` by default; `/tmp` is an `emptyDir` and all writes go to the mounted data/cache volumes. Set `securityContext.readOnlyRootFilesystem: false` if a sidecar or wrapper needs to write elsewhere.
 
+The server pod and the `helm test` pod both meet the [restricted Pod Security Standard](https://kubernetes.io/docs/concepts/security/pod-security-standards/#restricted): non-root, `RuntimeDefault` seccomp, no privilege escalation, and all capabilities dropped. CI installs the chart into a namespace labeled `pod-security.kubernetes.io/enforce=restricted`. The server pod sets `automountServiceAccountToken: false` because the server never calls the Kubernetes API. IRSA and GKE Workload Identity still work, since they do not use the automounted token.
+
 ## Key values
 
 | Value                                                        | Purpose                                                                                                                                                               |

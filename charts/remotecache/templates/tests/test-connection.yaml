@@ -12,9 +12,19 @@ metadata:
     helm.sh/hook-delete-policy: before-hook-creation
 spec:
   restartPolicy: Never
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    seccompProfile:
+      type: RuntimeDefault
   containers:
     - name: health-check
       image: busybox:1.37
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop:
+            - ALL
       command:
         - wget
         - '-q'
