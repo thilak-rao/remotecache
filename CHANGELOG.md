@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.3.0](https://github.com/thilak-rao/remotecache/compare/v3.2.3...v3.3.0) (2026-11-08)
+
+
+### Features
+
+* **docs-site:** add csp and 404 page handling ([#64](https://github.com/thilak-rao/remotecache/issues/64)) ([180d132](https://github.com/thilak-rao/remotecache/commit/180d1326123b137f4cde299aca307c7508a95899))
+
 ## [3.2.3](https://github.com/thilak-rao/remotecache/compare/v3.2.2...v3.2.3) (2026-11-07)
 
 
